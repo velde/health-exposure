@@ -1,5 +1,19 @@
+# Environment config
+.env
+
+# Python virtual environment
 venv/
+
+# Lambda build artifacts
+lambda_deploy.zip
+
+# Python cache
 __pycache__/
 *.pyc
-.env
+*.pyo
+*.pyd
+
+# OS / editor junk
+.DS_Store
+*.swp
 *.code-workspace

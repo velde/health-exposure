@@ -1,33 +1,22 @@
 
-import os
 import requests
 
-API_KEY = os.getenv("OPENWEATHER_API_KEY")
-ONECALL_URL = "https://api.openweathermap.org/data/2.5/onecall"
+CURRENTUV_URL = "https://currentuvindex.com/api/v1/uvi"
 
 def get_uv_index(ctx):
     lat, lon = ctx["lat"], ctx["lon"]
 
-    if not API_KEY:
-        raise RuntimeError("Missing OPENWEATHER_API_KEY")
-
-    params = {
-        "lat": lat,
-        "lon": lon,
-        "exclude": "minutely,hourly,daily,alerts",
-        "appid": API_KEY
-    }
-
     try:
-        response = requests.get(ONECALL_URL, params=params)
+        response = requests.get(CURRENTUV_URL, params={"latitude": lat, "longitude": lon})
         response.raise_for_status()
         data = response.json()
-        current = data.get("current", {})
+
         return {
-            "source": "openweathermap",
-            "uv_index": current.get("uvi"),
-            "timestamp": current.get("dt")
+            "source": "currentuvindex.com",
+            "uv_index": data.get("uv_index"),
+            "timestamp": data.get("timestamp")
         }
+
     except Exception as e:
         print(f"[ERROR] UV adapter failed for {lat}, {lon}: {e}")
         return None

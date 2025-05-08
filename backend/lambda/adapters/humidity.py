@@ -3,7 +3,7 @@ import os
 import requests
 
 API_KEY = os.getenv("OPENWEATHER_API_KEY")
-ONECALL_URL = "https://api.openweathermap.org/data/2.5/onecall"
+CURRENT_WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather"
 
 def get_humidity(ctx):
     lat, lon = ctx["lat"], ctx["lon"]
@@ -14,20 +14,22 @@ def get_humidity(ctx):
     params = {
         "lat": lat,
         "lon": lon,
-        "exclude": "minutely,hourly,daily,alerts",
         "appid": API_KEY
     }
 
     try:
-        response = requests.get(ONECALL_URL, params=params)
+        response = requests.get(CURRENT_WEATHER_URL, params=params)
         response.raise_for_status()
         data = response.json()
-        current = data.get("current", {})
+        humidity = data.get("main", {}).get("humidity")
+        timestamp = data.get("dt")
+
         return {
             "source": "openweathermap",
-            "humidity": current.get("humidity"),
-            "timestamp": current.get("dt")
+            "humidity": humidity,
+            "timestamp": timestamp
         }
+
     except Exception as e:
         print(f"[ERROR] Humidity adapter failed for {lat}, {lon}: {e}")
         return None

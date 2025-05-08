@@ -1,19 +1,26 @@
+
 import json
 import boto3
 import os
 import time
 from datetime import datetime, timezone
 from adapters.openweather import get_air_quality
+from adapters.tapwater import is_tap_water_safe
 import h3
 
 s3 = boto3.client("s3")
 BUCKET_NAME = os.environ.get("BUCKET_NAME", "health-exposure-data")
-TTL_SECONDS = 3600  # 1 hour
+BASE_TTL_SECONDS = 3600  # default 1 hour for free tier
 
 def lambda_handler(event, context):
-    # Support 2 modes: /?lat=...&lon=... and /cells/fallback/{h3_id}
     params = event.get("queryStringParameters") or {}
     path_params = event.get("pathParameters") or {}
+    headers = event.get("headers") or {}
+
+    # --- Simulated auth/user context ---
+    # In production this would come from JWT, Cognito, or API Gateway usage plans
+    user_tier = headers.get("x-user-tier", "free").lower()  # "free" or "premium"
+    user_id = headers.get("x-user-id", "guest")
 
     if "lat" in params and "lon" in params:
         lat = float(params["lat"])
@@ -27,43 +34,59 @@ def lambda_handler(event, context):
     else:
         return error_response(400, "Missing lat/lon or h3_id")
 
+    # Tier-specific TTL
+    TTL_SECONDS = 300 if user_tier == "premium" else BASE_TTL_SECONDS
     key = f"cells/{h3_cell}.json"
 
     try:
         response = s3.get_object(Bucket=BUCKET_NAME, Key=key)
         body = json.loads(response["Body"].read().decode("utf-8"))
-        if body.get("last_updated") and not is_stale(body["last_updated"]):
+        if body.get("last_updated") and not is_stale(body["last_updated"], TTL_SECONDS):
             return success_response(body)
     except s3.exceptions.NoSuchKey:
         pass
     except Exception as e:
         print(f"Error reading from S3: {e}")
 
-    # Regenerate if missing or stale
     try:
-        data = get_air_quality(lat, lon)
+        request_context = {
+            "lat": lat,
+            "lon": lon,
+            "h3_cell": h3_cell,
+            "user_tier": user_tier,
+            "user_id": user_id
+        }
+
+        air_quality = get_air_quality(request_context)
+        tap_water = is_tap_water_safe(request_context)
+
         enriched = {
             "h3_cell": h3_cell,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "last_updated": int(time.time()),
-            "data": data
+            "data": {
+                "air_quality": air_quality,
+                "tap_water": tap_water
+            }
         }
+
         s3.put_object(
             Bucket=BUCKET_NAME,
             Key=key,
             Body=json.dumps(enriched),
             ContentType="application/json",
             Metadata={"last_updated": str(enriched["last_updated"])},
-            CacheControl="max-age=3600"
+            CacheControl=f"max-age={TTL_SECONDS}"
         )
+
         return success_response(enriched)
     except Exception as e:
         print(f"Error generating or saving data: {e}")
         return error_response(500, "Internal server error")
 
-def is_stale(last_updated_unix):
+def is_stale(last_updated_unix, ttl_seconds):
     try:
-        return (int(time.time()) - int(last_updated_unix)) > TTL_SECONDS
+        return (int(time.time()) - int(last_updated_unix)) > ttl_seconds
     except Exception:
         return True
 

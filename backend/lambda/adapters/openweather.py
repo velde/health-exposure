@@ -1,16 +1,13 @@
+
 import os
 import requests
-from dotenv import load_dotenv
-from pathlib import Path
-
-# Load .env from project root
-env_path = Path(__file__).resolve().parent.parent / ".env"
-load_dotenv(dotenv_path=env_path)
 
 API_KEY = os.getenv("OPENWEATHER_API_KEY")
 BASE_URL = "https://api.openweathermap.org/data/2.5/air_pollution"
 
-def get_air_quality(lat, lon):
+def get_air_quality(ctx):
+    lat, lon = ctx["lat"], ctx["lon"]
+
     if not API_KEY:
         raise RuntimeError("Missing OPENWEATHER_API_KEY")
 

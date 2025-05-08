@@ -8,6 +8,7 @@ from adapters.openweather import get_air_quality
 from adapters.tapwater import is_tap_water_safe
 from adapters.uv import get_uv_index
 from adapters.humidity import get_humidity
+from adapters.pollen import get_pollen
 import h3
 
 s3 = boto3.client("s3")
@@ -61,7 +62,8 @@ def lambda_handler(event, context):
         tap_water = is_tap_water_safe(request_context)
         uv = get_uv_index(request_context)
         humidity = get_humidity(request_context)
-
+        pollen = get_pollen(request_context)
+        
         enriched = {
             "h3_cell": h3_cell,
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -70,7 +72,8 @@ def lambda_handler(event, context):
                 "air_quality": air_quality,
                 "tap_water": tap_water,
                 "uv": uv,
-                "humidity": humidity
+                "humidity": humidity,
+                "pollen": pollen
             }
         }
 

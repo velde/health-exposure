@@ -52,7 +52,9 @@ def lambda_handler(event, context):
             Bucket=BUCKET_NAME,
             Key=key,
             Body=json.dumps(enriched),
-            ContentType="application/json"
+            ContentType="application/json",
+            Metadata={"last_updated": str(enriched["last_updated"])},
+            CacheControl="max-age=3600"
         )
         return success_response(enriched)
     except Exception as e:

@@ -1,0 +1,42 @@
+name: Deploy Lambda & Invalidate Cache
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Docker
+      uses: docker/setup-buildx-action@v2
+
+    - name: Build Lambda package
+      run: |
+        cd backend
+        docker build --platform linux/amd64 -t health-lambda .
+        docker run --rm --platform linux/amd64 -v "$PWD":/out --entrypoint bash health-lambda \
+          -c "cd /var/task && zip -r /out/lambda_deploy.zip ."
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Deploy to Lambda
+      run: |
+        aws lambda update-function-code \
+          --function-name health-exposure-fallback \
+          --zip-file fileb://backend/lambda_deploy.zip
+
+    - name: Invalidate CloudFront cache
+      run: |
+        aws cloudfront create-invalidation \
+          --distribution-id ${{ secrets.CLOUDFRONT_DIST_ID }} \
+          --paths "/cells/*"

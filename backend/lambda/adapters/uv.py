@@ -11,10 +11,13 @@ def get_uv_index(ctx):
         response.raise_for_status()
         data = response.json()
 
+        uv = data.get("now", {}).get("uvi")
+        timestamp = data.get("now", {}).get("time")
+
         return {
             "source": "currentuvindex.com",
-            "uv_index": data.get("uv_index"),
-            "timestamp": data.get("timestamp")
+            "uv_index": uv,
+            "timestamp": timestamp
         }
 
     except Exception as e:

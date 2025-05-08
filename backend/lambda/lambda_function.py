@@ -6,6 +6,8 @@ import time
 from datetime import datetime, timezone
 from adapters.openweather import get_air_quality
 from adapters.tapwater import is_tap_water_safe
+from adapters.uv import get_uv_index
+from adapters.humidity import get_humidity
 import h3
 
 s3 = boto3.client("s3")
@@ -18,8 +20,7 @@ def lambda_handler(event, context):
     headers = event.get("headers") or {}
 
     # --- Simulated auth/user context ---
-    # In production this would come from JWT, Cognito, or API Gateway usage plans
-    user_tier = headers.get("x-user-tier", "free").lower()  # "free" or "premium"
+    user_tier = headers.get("x-user-tier", "free").lower()
     user_id = headers.get("x-user-id", "guest")
 
     if "lat" in params and "lon" in params:
@@ -34,7 +35,6 @@ def lambda_handler(event, context):
     else:
         return error_response(400, "Missing lat/lon or h3_id")
 
-    # Tier-specific TTL
     TTL_SECONDS = 300 if user_tier == "premium" else BASE_TTL_SECONDS
     key = f"cells/{h3_cell}.json"
 
@@ -59,6 +59,8 @@ def lambda_handler(event, context):
 
         air_quality = get_air_quality(request_context)
         tap_water = is_tap_water_safe(request_context)
+        uv = get_uv_index(request_context)
+        humidity = get_humidity(request_context)
 
         enriched = {
             "h3_cell": h3_cell,
@@ -66,7 +68,9 @@ def lambda_handler(event, context):
             "last_updated": int(time.time()),
             "data": {
                 "air_quality": air_quality,
-                "tap_water": tap_water
+                "tap_water": tap_water,
+                "uv": uv,
+                "humidity": humidity
             }
         }
 

@@ -24,7 +24,6 @@ function DashboardScreen({ navigation }) {
 
         const loc = await Location.getCurrentPositionAsync({});
         const { latitude, longitude } = loc.coords;
-        setLocationText(`📍 Lat: ${latitude.toFixed(3)}, Lon: ${longitude.toFixed(3)}`);
 
         const url = `https://dokrd0asw0.execute-api.eu-north-1.amazonaws.com/cells?lat=${latitude}&lon=${longitude}`;
 
@@ -34,6 +33,14 @@ function DashboardScreen({ navigation }) {
 
         const json = await response.json();
         setData(json.data);
+
+        // Update displayed location using backend-supplied value
+        setLocationText(
+          json.location
+            ? `📍 ${json.location}`
+            : `📍 Lat: ${latitude.toFixed(3)}, Lon: ${longitude.toFixed(3)}`
+        );
+
         setLoading(false);
       } catch (err) {
         console.error('Error fetching or locating:', err);

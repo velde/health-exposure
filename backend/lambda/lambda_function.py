@@ -9,6 +9,7 @@ from adapters.tapwater import is_tap_water_safe
 from adapters.uv import get_uv_index
 from adapters.humidity import get_humidity
 from adapters.pollen import get_pollen
+from adapters.opencage import reverse_geocode
 import h3
 
 s3 = boto3.client("s3")
@@ -58,6 +59,7 @@ def lambda_handler(event, context):
             "user_id": user_id
         }
 
+        location = reverse_geocode(lat, lon)
         air_quality = get_air_quality(request_context)
         tap_water = is_tap_water_safe(request_context)
         uv = get_uv_index(request_context)
@@ -68,6 +70,7 @@ def lambda_handler(event, context):
             "h3_cell": h3_cell,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "last_updated": int(time.time()),
+            "location": location,
             "data": {
                 "air_quality": air_quality,
                 "tap_water": tap_water,

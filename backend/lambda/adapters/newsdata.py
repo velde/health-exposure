@@ -16,9 +16,8 @@ def fetch_local_health_news(lat, lon, location_name=None, language="en"):
             "apikey": API_KEY,
             "q": query,
             "language": language,
-            "category": "health,environment",  # Include both health and environment categories
-            "page": 1,
-            "page_size": 5
+            "category": "health",  # Use single category
+            "size": 5  # Use size instead of page_size
         }
 
         response = requests.get("https://newsdata.io/api/1/news", params=params)

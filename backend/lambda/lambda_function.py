@@ -13,7 +13,6 @@ from adapters.newsdata import fetch_local_health_news
 import h3
 
 s3 = boto3.client("s3")
-RESOLUTION = 6
 BUCKET_NAME = os.environ.get("BUCKET_NAME", "health-exposure-data")
 BASE_TTL_SECONDS = 3600  # default 1 hour for free tier
 NEWS_TTL_SECONDS = 43200  # 12 hours for news
@@ -28,9 +27,6 @@ def lambda_handler(event, context):
     user_id = headers.get("x-user-id", "guest")
 
     if "lat" in params and "lon" in params:
-        lat, lon = float(params["lat"]), float(params["lon"])
-        h3_cell = h3.latlng_to_cell(lat, lon, RESOLUTION)
-        key = f"cells/{h3_cell}.json"
         lat = float(params["lat"])
         lon = float(params["lon"])
         h3_cell = h3.latlng_to_cell(lat, lon, 6)
@@ -42,37 +38,6 @@ def lambda_handler(event, context):
     else:
         return error_response(400, "Missing lat/lon or h3_id")
 
-    now = int(time.time())
-    try:
-        response = s3.get_object(Bucket=BUCKET_NAME, Key=key)
-        body = json.loads(response['Body'].read())
-        if body.get('last_updated', 0) > now - TTL_SECONDS:
-            news = body.get('news', {})
-            fetched_at = news.get('fetched_at')
-            refresh_news = True
-            if fetched_at:
-                try:
-                    dt = datetime.fromisoformat(fetched_at)
-                    refresh_news = dt.timestamp() < now - NEWS_TTL_SECONDS
-                except Exception:
-                    pass
-            if refresh_news:
-                location = body.get('location') or 'Unknown'
-                new_try:
-        news = fetch_local_health_news(lat, lon, location)
-    except Exception as e:
-        print(f"[ERROR] News fetch failed: {e}")
-        news = {"source": "newsdata.io", "error": str(e), "articles": []}
-                body['news'] = new_news
-                s3.put_object(Bucket=BUCKET_NAME, Key=key, Body=json.dumps(body).encode('utf-8'))
-            return {
-                'statusCode': 200,
-                'headers': {'Content-Type': 'application/json'},
-                'body': json.dumps(body)
-            }
-    except s3.exceptions.NoSuchKey:
-        pass
-
     TTL_SECONDS = 300 if user_tier == "premium" else BASE_TTL_SECONDS
     key = f"cells/{h3_cell}.json"
 
@@ -80,6 +45,33 @@ def lambda_handler(event, context):
         response = s3.get_object(Bucket=BUCKET_NAME, Key=key)
         body = json.loads(response["Body"].read().decode("utf-8"))
         if body.get("last_updated") and not is_stale(body["last_updated"], TTL_SECONDS):
+            # Check if news needs refresh
+            news = body.get('news', {})
+            fetched_at = news.get('fetched_at')
+            refresh_news = True
+            if fetched_at:
+                try:
+                    dt = datetime.fromisoformat(fetched_at)
+                    refresh_news = dt.timestamp() < time.time() - NEWS_TTL_SECONDS
+                except Exception:
+                    pass
+            
+            if refresh_news:
+                location = body.get('location') or 'Unknown'
+                try:
+                    news = fetch_local_health_news(lat, lon, location)
+                    body['news'] = news
+                    s3.put_object(
+                        Bucket=BUCKET_NAME,
+                        Key=key,
+                        Body=json.dumps(body),
+                        ContentType="application/json"
+                    )
+                except Exception as e:
+                    print(f"[ERROR] News fetch failed: {e}")
+                    news = {"source": "newsdata.io", "error": str(e), "articles": []}
+                    body['news'] = news
+            
             return success_response(body)
     except s3.exceptions.NoSuchKey:
         pass
@@ -101,6 +93,7 @@ def lambda_handler(event, context):
         uv = get_uv_index(request_context)
         humidity = get_humidity(request_context)
         pollen = get_pollen(request_context)
+        news = fetch_local_health_news(lat, lon, location)
         
         enriched = {
             "h3_cell": h3_cell,
@@ -113,7 +106,8 @@ def lambda_handler(event, context):
                 "uv": uv,
                 "humidity": humidity,
                 "pollen": pollen
-            }
+            },
+            "news": news
         }
 
         s3.put_object(

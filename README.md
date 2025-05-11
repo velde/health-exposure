@@ -1,63 +1,129 @@
+# Health Exposure App
 
-# 🩺 Health Exposure App
-
-A mobile-first system for delivering real-time, location-based health risk data (like air quality and UV index).  
-This project is structured into a **backend** (AWS Lambda + S3 + CloudFront) and a future **frontend** (React Native).
+A full-stack mobile application that informs users of their environmental health exposure based on their real-time location. Risk factors include air quality, UV index, pollen count, humidity, and other locally relevant alerts such as water safety and health-related news.
 
 ---
 
-## 🗂 Project Structure
+## 📱 Frontend
+
+**Built with:** React Native + Expo
+
+### Features:
+- Detects user location using `expo-location`
+- Displays health exposure data in a traffic-light format (green/yellow/red)
+- Tappable rows for details on each category
+- Location name shown under header (via backend reverse geocode)
+- Mobile-first UI with clean layout
+- Optional support for premium tier and history views (in progress)
+
+### Getting Started
+
+```bash
+cd frontend
+npm install
+npx expo start
+```
+
+Scan QR code with Expo Go to run on your device.
+
+---
+
+## 🛰 Backend
+
+**Built with:** AWS Lambda (Python) + S3 + CloudFront
+
+### Responsibilities:
+- Generates and serves JSON files by H3 cell
+- Uses Uber H3 resolution 6 (~1.2 km² granularity)
+- Stores cached JSON in S3 (`health-exposure-data/`)
+- Serves via Lambda URL or public CloudFront endpoint
+
+### Data Adapters:
+- `openweather.py`: air quality (PM2.5, PM10, O₃, CO), humidity
+- `uv.py`: UV index (via CurrentUVIndex API)
+- `pollen.py`: pollen counts from Open-Meteo (Europe)
+- `tapwater.py`: tap water safety (OpenCage country check)
+- `opencage.py`: reverse geocoding
+- `newsdata.py`: health/safety news (optional)
+
+### Example API Usage:
+
+```http
+GET /cells?lat=60.17&lon=24.93
+```
+
+Returns JSON like:
+
+```json
+{
+  "h3_cell": "85283473fffffff",
+  "location": "Helsinki, Finland",
+  "last_updated": 1746720000,
+  "data": {
+    "air_quality": { ... },
+    "uv": { ... },
+    "pollen": { ... },
+    "humidity": { ... },
+    "tap_water": { ... }
+  },
+  "news": {
+    "fetched_at": "...",
+    "articles": [ ... ]
+  }
+}
+```
+
+---
+
+## 🔄 Deployment
+
+### Backend CI/CD
+- AWS Lambda deployed automatically via GitHub Actions
+- Docker used for native dependency packaging (e.g. `h3` for x86_64 Lambda)
+
+### Frontend
+- Expo managed
+- Deployed manually via Expo Go or `eas build` (future)
+
+---
+
+## 🔐 API Keys & Environment
+
+Required environment variables:
+
+```
+OPENWEATHER_API_KEY=
+OPENCAGE_API_KEY=
+NEWSDATA_API_KEY=
+S3_BUCKET=health-exposure-data
+```
+
+Set these in the AWS Lambda environment config and `.env` locally as needed.
+
+---
+
+## 🛣 Roadmap
+
+- Add refresh & pull-to-refresh
+- Add exposure history / graphs
+- Simulate premium tiers (shorter TTL, more detail)
+- Display health-related news (optional)
+- Add local alerts for disasters, smoke, or water quality
+
+---
+
+## 📁 Repo Structure
 
 ```
 health-exposure/
-├── backend/          # AWS Lambda backend with caching and fallback
-│   ├── lambda/       # Lambda function and OpenWeather adapter
-│   ├── scripts/      # CLI tools for local testing and AWS inspection
-│   ├── requirements.txt
-│   ├── Dockerfile
-│   └── README.md     # Backend-specific docs
-├── frontend/         # Placeholder for mobile app (React Native)
-│   └── README.md
-├── README.md         # Project overview (this file)
+├── backend/
+│   ├── lambda/
+│   │   ├── lambda_function.py
+│   │   └── adapters/
+│   └── Dockerfile
+├── frontend/
+│   ├── App.js
+│   ├── components/
+│   └── screens/
+└── README.md
 ```
-
----
-
-## 🎯 Overview
-
-- 🛰 **Backend**: Provides health data by H3 location using OpenWeather API
-- 📦 **Serverless**: Built with AWS Lambda, S3, CloudFront, and API Gateway
-- 🔁 **Caching**: Lazy generation with TTL-based refresh (~1h)
-- 🛡 **Secure**: Public-read only S3, no public write, no open API keys
-- 📱 **Frontend**: Mobile app (coming soon) to visualize and interact with data
-
----
-
-## 🚀 Setup
-
-To get started with the backend:
-
-```bash
-cd backend
-docker build --platform linux/amd64 -t health-lambda .
-docker run --rm --platform linux/amd64 -v "$PWD":/out --entrypoint bash health-lambda \
-  -c "cd /var/task && zip -r /out/lambda_deploy.zip ."
-
-aws lambda update-function-code \
-  --function-name health-exposure-fallback \
-  --zip-file fileb://lambda_deploy.zip
-```
-
-Frontend setup coming soon.
-
----
-
-## 🔒 Security
-
-This repo is private. Ensure `.env`, API keys, or secrets are **never committed**.
-
----
-
-## 👤 Author
-
-Built by [Your Name] as part of a professional portfolio in AI & cloud systems.

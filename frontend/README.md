@@ -1,37 +1,56 @@
 # Health Exposure – Frontend
 
-A mobile app built with React Native and Expo to display real-time health exposure risks like air quality, UV index, humidity, and pollen based on your location.
+A mobile-first React Native app (Expo) that displays local environmental risk factors such as air quality, UV index, pollen, and humidity.
 
-## 🔧 Tech Stack
+---
 
-- React Native (Expo)
-- Navigation: React Navigation
-- Location: expo-location
-- Backend: AWS Lambda API (GET /cells?lat=...&lon=...)
+## 🚀 Features
 
-## 🚀 Getting Started
+- 📍 Detects user location using `expo-location`
+- 📊 Shows risk levels with traffic-light color scheme
+- 🧾 Tappable rows open detail screens for each metric
+- 🗺 Displays resolved location name (from backend)
+- 🔐 Planned: premium tier support, history views
+
+---
+
+## 🛠 Getting Started
 
 ```bash
+cd frontend
 npm install
 npx expo start
 ```
 
-Scan the QR code with [Expo Go](https://expo.dev/client) on your phone.
+Scan QR code using Expo Go to preview the app on your device.
 
-## 📦 Features
+---
 
-- Auto-detects device location
-- Fetches real health risk data
-- Color-coded traffic-light UI
-- Tap to view details for each category
+## 📦 Tech Stack
 
-## 🔐 Secrets
+- React Native with Expo
+- React Navigation
+- Location & Permissions via `expo-location`
+- Fetches health data from AWS Lambda backend
 
-No secrets are committed. Ensure you do **not** store `.env` or tokens in this repo.
+---
+
+## 🧪 Local Development
+
+- Works with real backend URLs
+- Supports running on iOS/Android simulators and physical devices
+- All health data comes from H3-indexed backend API (`/cells?lat=...&lon=...`)
+
+---
 
 ## 📁 Folder Structure
 
-- `App.js` – Main app logic and navigation
-- `components/` – Reusable UI components
-- `screens/` – Detail views
-- `utils/` – (optional future additions)
+```
+frontend/
+├── App.js
+├── components/
+│   └── RiskRow.js
+├── screens/
+│   └── DetailScreen.js
+└── README.md
+```

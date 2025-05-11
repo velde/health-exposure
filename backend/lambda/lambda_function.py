@@ -13,6 +13,7 @@ from adapters.newsdata import fetch_local_health_news
 import h3
 
 s3 = boto3.client("s3")
+RESOLUTION = 6
 BUCKET_NAME = os.environ.get("BUCKET_NAME", "health-exposure-data")
 BASE_TTL_SECONDS = 3600  # default 1 hour for free tier
 NEWS_TTL_SECONDS = 43200  # 12 hours for news

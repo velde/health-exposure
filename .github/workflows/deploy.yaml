@@ -35,6 +35,12 @@ jobs:
           --function-name health-exposure-fallback \
           --zip-file fileb://backend/lambda_deploy.zip
 
+    - name: Update Lambda environment variables
+      run: |
+        aws lambda update-function-configuration \
+          --function-name health-exposure-fallback \
+          --environment "Variables={OPENWEATHER_API_KEY=${{ secrets.OPENWEATHER_API_KEY }},OPENCAGE_API_KEY=${{ secrets.OPENCAGE_API_KEY }},NEWSDATA_API_KEY=${{ secrets.NEWSDATA_API_KEY }},BUCKET_NAME=health-exposure-data}"
+
     - name: Invalidate CloudFront cache
       run: |
         aws cloudfront create-invalidation \

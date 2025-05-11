@@ -7,11 +7,7 @@ class OpenAIService:
         self.api_key = os.getenv("OPENAI_API_KEY")
         if not self.api_key:
             raise RuntimeError("Missing OPENAI_API_KEY")
-        # Initialize client with minimal configuration
-        self.client = openai.OpenAI(
-            api_key=self.api_key,
-            base_url="https://api.openai.com/v1"
-        )
+        self.client = openai.OpenAI(api_key=self.api_key)
 
     def get_completion(self, prompt, system_message=None, model="gpt-4-turbo-preview", response_format=None):
         """
@@ -31,13 +27,16 @@ class OpenAIService:
             messages.append({"role": "system", "content": system_message})
         messages.append({"role": "user", "content": prompt})
 
-        response = self.client.chat.completions.create(
-            model=model,
-            messages=messages,
-            response_format=response_format
-        )
-
-        return response.choices[0].message.content
+        try:
+            response = self.client.chat.completions.create(
+                model=model,
+                messages=messages,
+                response_format=response_format
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            print(f"[ERROR] OpenAI API request failed: {e}")
+            raise
 
     def get_structured_completion(self, prompt, system_message=None, model="gpt-4-turbo-preview"):
         """
@@ -51,10 +50,14 @@ class OpenAIService:
         Returns:
             dict: The structured response
         """
-        response = self.get_completion(
-            prompt=prompt,
-            system_message=system_message,
-            model=model,
-            response_format={"type": "json_object"}
-        )
-        return eval(response)  # Safe since we requested JSON format 
+        try:
+            response = self.get_completion(
+                prompt=prompt,
+                system_message=system_message,
+                model=model,
+                response_format={"type": "json_object"}
+            )
+            return eval(response)  # Safe since we requested JSON format
+        except Exception as e:
+            print(f"[ERROR] Failed to get structured completion: {e}")
+            raise 

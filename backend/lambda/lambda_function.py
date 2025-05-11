@@ -1,4 +1,3 @@
-
 import json
 import boto3
 import os
@@ -10,11 +9,13 @@ from adapters.uv import get_uv_index
 from adapters.humidity import get_humidity
 from adapters.pollen import get_pollen
 from adapters.opencage import reverse_geocode
+from adapters.newsdata import fetch_local_health_news
 import h3
 
 s3 = boto3.client("s3")
 BUCKET_NAME = os.environ.get("BUCKET_NAME", "health-exposure-data")
 BASE_TTL_SECONDS = 3600  # default 1 hour for free tier
+NEWS_TTL_SECONDS = 43200  # 12 hours for news
 
 def lambda_handler(event, context):
     params = event.get("queryStringParameters") or {}
@@ -36,6 +37,33 @@ def lambda_handler(event, context):
         lat, lon = h3.cell_to_latlng(h3_cell)
     else:
         return error_response(400, "Missing lat/lon or h3_id")
+
+    now = int(time.time())
+    try:
+        response = s3.get_object(Bucket=BUCKET_NAME, Key=key)
+        body = json.loads(response['Body'].read())
+        if body.get('last_updated', 0) > now - TTL_SECONDS:
+            news = body.get('news', {})
+            fetched_at = news.get('fetched_at')
+            refresh_news = True
+            if fetched_at:
+                try:
+                    dt = datetime.fromisoformat(fetched_at)
+                    refresh_news = dt.timestamp() < now - NEWS_TTL_SECONDS
+                except Exception:
+                    pass
+            if refresh_news:
+                location = body.get('location') or 'Unknown'
+                new_news = fetch_local_health_news(lat, lon, location)
+                body['news'] = new_news
+                s3.put_object(Bucket=BUCKET_NAME, Key=key, Body=json.dumps(body).encode('utf-8'))
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps(body)
+            }
+    except s3.exceptions.NoSuchKey:
+        pass
 
     TTL_SECONDS = 300 if user_tier == "premium" else BASE_TTL_SECONDS
     key = f"cells/{h3_cell}.json"

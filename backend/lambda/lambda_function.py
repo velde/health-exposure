@@ -27,6 +27,9 @@ def lambda_handler(event, context):
     user_id = headers.get("x-user-id", "guest")
 
     if "lat" in params and "lon" in params:
+        lat, lon = float(params["lat"]), float(params["lon"])
+        h3_cell = h3.latlng_to_cell(lat, lon, RESOLUTION)
+        key = f"cells/{h3_cell}.json"
         lat = float(params["lat"])
         lon = float(params["lon"])
         h3_cell = h3.latlng_to_cell(lat, lon, 6)

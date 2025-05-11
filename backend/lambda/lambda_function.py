@@ -58,7 +58,11 @@ def lambda_handler(event, context):
                     pass
             if refresh_news:
                 location = body.get('location') or 'Unknown'
-                new_news = fetch_local_health_news(lat, lon, location)
+                new_try:
+        news = fetch_local_health_news(lat, lon, location)
+    except Exception as e:
+        print(f"[ERROR] News fetch failed: {e}")
+        news = {"source": "newsdata.io", "error": str(e), "articles": []}
                 body['news'] = new_news
                 s3.put_object(Bucket=BUCKET_NAME, Key=key, Body=json.dumps(body).encode('utf-8'))
             return {

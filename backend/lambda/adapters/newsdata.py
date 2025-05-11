@@ -29,20 +29,40 @@ def fetch_local_health_news(lat, lon, location_name=None, language="en"):
         If there are no recent relevant news items, return an empty array."""
 
         # Get structured response from OpenAI
-        system_message = "You are a helpful assistant that provides current news about health and environmental risks. Format your response as a JSON array."
+        system_message = """You are a helpful assistant that provides current news about health and environmental risks. 
+        Format your response as a JSON object with an 'articles' array containing news items.
+        Each news item should have: title, description, source, link, and pub_date fields."""
+        
         response = openai_service.get_structured_completion(prompt, system_message)
+        
+        # Ensure we have a valid response structure
+        if not isinstance(response, dict):
+            print(f"[ERROR] Invalid response format from OpenAI: {response}")
+            return {
+                "source": "openai",
+                "error": "Invalid response format",
+                "articles": []
+            }
+            
         articles = response.get('articles', [])
+        if not isinstance(articles, list):
+            print(f"[ERROR] Invalid articles format: {articles}")
+            return {
+                "source": "openai",
+                "error": "Invalid articles format",
+                "articles": []
+            }
 
         return {
             "source": "openai",
             "fetched_at": datetime.utcnow().isoformat(),
             "articles": [
                 {
-                    "title": article.get("title"),
-                    "description": article.get("description"),
+                    "title": article.get("title", "No title"),
+                    "description": article.get("description", "No description"),
                     "source": article.get("source", "Unknown"),
                     "link": article.get("link", ""),
-                    "pub_date": article.get("date", "")
+                    "pub_date": article.get("pub_date", "")
                 }
                 for article in articles
             ]

@@ -14,12 +14,11 @@ def fetch_local_health_news(lat, lon, location_name=None, language="en"):
 
         params = {
             "apikey": API_KEY,
-            "q": query,  # Simplified query
+            "q": query,
             "language": language,
-            "category": "health",  # Single category
+            "category": "health,environment",  # Include both health and environment categories
             "page": 1,
-            "page_size": 5,
-            "country": "fi"  # Add country code for Finland
+            "page_size": 5
         }
 
         response = requests.get("https://newsdata.io/api/1/news", params=params)

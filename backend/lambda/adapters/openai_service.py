@@ -1,5 +1,6 @@
 import os
 import openai
+import json
 from datetime import datetime
 
 class OpenAIService:
@@ -57,7 +58,7 @@ class OpenAIService:
                 model=model,
                 response_format={"type": "json_object"}
             )
-            return eval(response)  # Safe since we requested JSON format
+            return json.loads(response)  # Use json.loads instead of eval
         except Exception as e:
             print(f"[ERROR] Failed to get structured completion: {e}")
             raise 

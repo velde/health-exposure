@@ -25,6 +25,7 @@ def lambda_handler(event, context):
     # --- Simulated auth/user context ---
     user_tier = headers.get("x-user-tier", "free").lower()
     user_id = headers.get("x-user-id", "guest")
+    force_refresh = params.get("force_refresh", "false").lower() == "true"
 
     if "lat" in params and "lon" in params:
         lat = float(params["lat"])
@@ -44,11 +45,14 @@ def lambda_handler(event, context):
     try:
         response = s3.get_object(Bucket=BUCKET_NAME, Key=key)
         body = json.loads(response["Body"].read().decode("utf-8"))
-        if body.get("last_updated") and not is_stale(body["last_updated"], TTL_SECONDS):
-            # Check if news needs refresh
+        
+        # Only use cached data if not forcing refresh and data is not stale
+        if not force_refresh and body.get("last_updated") and not is_stale(body["last_updated"], TTL_SECONDS):
+            # Check if news needs refresh based on its own TTL
             news = body.get('news', {})
             fetched_at = news.get('fetched_at')
-            refresh_news = True
+            refresh_news = False  # Default to using cached news
+            
             if fetched_at:
                 try:
                     dt = datetime.fromisoformat(fetched_at)
@@ -69,7 +73,7 @@ def lambda_handler(event, context):
                     )
                 except Exception as e:
                     print(f"[ERROR] News fetch failed: {e}")
-                    news = {"source": "newsdata.io", "error": str(e), "articles": []}
+                    news = {"source": "openai", "error": str(e), "articles": []}
                     body['news'] = news
             
             return success_response(body)
@@ -78,6 +82,7 @@ def lambda_handler(event, context):
     except Exception as e:
         print(f"Error reading from S3: {e}")
 
+    # If we get here, either there was no cached data, it was stale, or force_refresh was true
     try:
         request_context = {
             "lat": lat,

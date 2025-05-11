@@ -7,7 +7,11 @@ class OpenAIService:
         self.api_key = os.getenv("OPENAI_API_KEY")
         if not self.api_key:
             raise RuntimeError("Missing OPENAI_API_KEY")
-        self.client = openai.OpenAI(api_key=self.api_key)
+        # Initialize client with minimal configuration
+        self.client = openai.OpenAI(
+            api_key=self.api_key,
+            base_url="https://api.openai.com/v1"
+        )
 
     def get_completion(self, prompt, system_message=None, model="gpt-4-turbo-preview", response_format=None):
         """

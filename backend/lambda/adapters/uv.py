@@ -1,13 +1,13 @@
-
 import requests
 
 CURRENTUV_URL = "https://currentuvindex.com/api/v1/uvi"
+REQUEST_TIMEOUT = 5  # 5 seconds timeout
 
 def get_uv_index(ctx):
     lat, lon = ctx["lat"], ctx["lon"]
 
     try:
-        response = requests.get(CURRENTUV_URL, params={"latitude": lat, "longitude": lon})
+        response = requests.get(CURRENTUV_URL, params={"latitude": lat, "longitude": lon}, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
         data = response.json()
 

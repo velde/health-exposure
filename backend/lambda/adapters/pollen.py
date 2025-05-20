@@ -1,7 +1,7 @@
-
 import requests
 
 OPEN_METEO_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"
+REQUEST_TIMEOUT = 5  # 5 seconds timeout
 
 def get_pollen(ctx):
     lat, lon = ctx["lat"], ctx["lon"]
@@ -15,7 +15,7 @@ def get_pollen(ctx):
                 "mugwort_pollen", "olive_pollen", "ragweed_pollen"
             ]),
             "timezone": "auto"
-        })
+        }, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
         data = response.json()
 

@@ -1,9 +1,9 @@
-
 import os
 import requests
 
 API_KEY = os.getenv("OPENWEATHER_API_KEY")
 BASE_URL = "https://api.openweathermap.org/data/2.5/air_pollution"
+REQUEST_TIMEOUT = 5  # 5 seconds timeout
 
 def get_air_quality(ctx):
     lat, lon = ctx["lat"], ctx["lon"]
@@ -18,7 +18,7 @@ def get_air_quality(ctx):
     }
 
     try:
-        response = requests.get(BASE_URL, params=params)
+        response = requests.get(BASE_URL, params=params, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
         data = response.json()
 

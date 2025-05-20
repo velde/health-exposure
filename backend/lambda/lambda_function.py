@@ -237,7 +237,7 @@ def handle_cors(event):
         "headers": {
             "Access-Control-Allow-Origin": origin,
             "Access-Control-Allow-Methods": "GET, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type,X-User-Tier,X-Api-Key",
+            "Access-Control-Allow-Headers": "Content-Type,x-user-tier,x-api-key",
             "Access-Control-Max-Age": "86400"  # 24 hours
         }
     }

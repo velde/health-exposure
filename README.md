@@ -54,7 +54,56 @@ Scan QR code with Expo Go to run on your device.
 - Prioritizes cells with the oldest news first
 - Staggers updates throughout the day to distribute load
 
-### Example API Usage:
+### API Usage
+
+The API accepts both coordinate-based and H3 cell-based requests:
+
+1. **Coordinate-based request**:
+   ```
+   GET /api/environmental?lat=61.4978&lon=23.7610
+   ```
+
+2. **H3 cell-based request**:
+   ```
+   GET /api/environmental/{h3_id}
+   ```
+
+#### Headers
+- `x-user-tier`: Optional. Set to "premium" for higher rate limits. Defaults to "free".
+- `x-api-key`: Required for third-party access. Contact for API key.
+- `force_refresh`: Optional query parameter. Set to "true" to bypass cache.
+
+#### Security
+The API implements several security measures:
+- CORS protection (only allows requests from authorized origins)
+- Simple API key authentication for third-party access
+- Rate limiting to prevent abuse
+- Input validation for all parameters
+- Security event logging and monitoring
+
+#### Monitoring
+The system includes comprehensive monitoring:
+- Error rate alerts (threshold: 5% in 5 minutes)
+- Request rate monitoring (threshold: 100 requests per 5 minutes)
+- Cost monitoring (threshold: $2 per day)
+- Security event logging and alerts
+  - Invalid API key attempts
+  - Unauthorized origin attempts
+  - Rate limit violations
+
+#### Rate Limiting
+The API implements rate limiting to ensure fair usage:
+- Free tier: 100 requests per hour
+- Premium tier: 1000 requests per hour
+
+Rate limit information is included in response headers:
+- `X-RateLimit-Limit`: Maximum requests allowed per hour
+- `X-RateLimit-Remaining`: Remaining requests in current hour
+- `X-RateLimit-Reset`: Unix timestamp when the rate limit resets
+
+When rate limit is exceeded, the API returns a 429 status code with details about when the limit will reset.
+
+#### Response Format
 
 ```http
 GET /cells?lat=60.17&lon=24.93
@@ -81,6 +130,19 @@ Returns JSON like:
 }
 ```
 
+### For Developers
+The API is available for third-party use with the following requirements:
+1. Valid API key (contact for access)
+2. Compliance with rate limits
+3. Proper attribution
+
+Example usage with API key:
+```bash
+curl -H "x-api-key: YOUR_API_KEY" \
+     -H "x-user-tier: premium" \
+     "https://api.health-exposure.app/environmental?lat=61.4978&lon=23.7610"
+```
+
 ---
 
 ## 🔄 Deployment
@@ -104,6 +166,7 @@ OPENWEATHER_API_KEY=
 OPENCAGE_API_KEY=
 NEWSDATA_API_KEY=
 S3_BUCKET=health-exposure-data
+HEALTH_EXPOSURE_API_KEY=  # For third-party API access
 ```
 
 Set these in the AWS Lambda environment config and `.env` locally as needed.

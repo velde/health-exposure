@@ -1,5 +1,26 @@
 # Changelog
 
+All notable changes to this project will be documented in this file.
+
+## [Unreleased]
+
+### Added
+- Rate limiting implementation with free/premium tiers
+  - Free tier: 100 requests per hour
+  - Premium tier: 1000 requests per hour
+  - Rate limit headers in responses
+  - Automatic cleanup of rate limit data after 2 hours
+- Security improvements
+  - CORS protection for authorized origins
+  - Simple API key authentication
+  - Enhanced input validation
+  - Developer documentation for API access
+- Monitoring and alerts
+  - CloudWatch alarms for error rates and request patterns
+  - Cost monitoring and alerts
+  - Security event logging and alerts
+  - Comprehensive monitoring documentation
+
 ## [v0.1.0] – 2025-05-08
 
 ### Added

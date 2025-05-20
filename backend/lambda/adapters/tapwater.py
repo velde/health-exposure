@@ -1,4 +1,3 @@
-
 import os
 import requests
 
@@ -13,6 +12,7 @@ SAFE_COUNTRIES = {
 
 OPENCAGE_API_KEY = os.getenv("OPENCAGE_API_KEY")
 OPENCAGE_URL = "https://api.opencagedata.com/geocode/v1/json"
+REQUEST_TIMEOUT = 5  # 5 seconds timeout
 
 def is_tap_water_safe(ctx):
     lat, lon = ctx["lat"], ctx["lon"]
@@ -28,7 +28,7 @@ def is_tap_water_safe(ctx):
     }
 
     try:
-        response = requests.get(OPENCAGE_URL, params=params)
+        response = requests.get(OPENCAGE_URL, params=params, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
         data = response.json()
         components = data["results"][0]["components"]
@@ -37,7 +37,7 @@ def is_tap_water_safe(ctx):
         return {
             "source": "opencage+custom",
             "country": country,
-            "tap_water_safe": country in SAFE_COUNTRIES
+            "safe": country in SAFE_COUNTRIES
         }
 
     except Exception as e:
@@ -45,5 +45,5 @@ def is_tap_water_safe(ctx):
         return {
             "source": "opencage+custom",
             "country": "Unknown",
-            "tap_water_safe": None
+            "safe": None
         }

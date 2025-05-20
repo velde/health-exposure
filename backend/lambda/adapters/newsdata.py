@@ -5,7 +5,7 @@ from adapters.openai_service import OpenAIService
 API_KEY = os.getenv("OPENAI_API_KEY")
 
 def is_recent_news(pub_date_str):
-    """Check if the news article is from the past month."""
+    """Check if the news article is from the past year."""
     if not pub_date_str:
         return False
         
@@ -22,9 +22,9 @@ def is_recent_news(pub_date_str):
         ]:
             try:
                 pub_date = datetime.strptime(pub_date_str, fmt)
-                # Check if the date is within the last month
-                one_month_ago = datetime.now() - timedelta(days=30)
-                return pub_date >= one_month_ago
+                # Check if the date is within the last year
+                one_year_ago = datetime.now() - timedelta(days=365)
+                return pub_date >= one_year_ago
             except ValueError:
                 continue
         return False
@@ -51,7 +51,7 @@ For each news item, provide:
 - The date (if known)
 
 Format the response as a JSON object with an 'articles' array containing news items.
-Only include news from the past month.
+Only include news from the past year.
 Focus on local health risks, environmental issues, and public health concerns.
 If there are no recent relevant news items, return an empty array."""
 

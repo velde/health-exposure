@@ -1,8 +1,35 @@
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from adapters.openai_service import OpenAIService
 
 API_KEY = os.getenv("OPENAI_API_KEY")
+
+def is_recent_news(pub_date_str):
+    """Check if the news article is from the past month."""
+    if not pub_date_str:
+        return False
+        
+    try:
+        # Try different date formats
+        for fmt in [
+            "%Y-%m-%d",  # 2024-05-20
+            "%Y-%m-%dT%H:%M:%S",  # 2024-05-20T13:00:00
+            "%Y-%m-%dT%H:%M:%S.%f",  # 2024-05-20T13:00:00.000000
+            "%Y-%m-%dT%H:%M:%S%z",  # 2024-05-20T13:00:00+00:00
+            "%B %d, %Y",  # May 20, 2024
+            "%d %B %Y",  # 20 May 2024
+            "%Y-%m-%d %H:%M:%S"  # 2024-05-20 13:00:00
+        ]:
+            try:
+                pub_date = datetime.strptime(pub_date_str, fmt)
+                # Check if the date is within the last month
+                one_month_ago = datetime.now() - timedelta(days=30)
+                return pub_date >= one_month_ago
+            except ValueError:
+                continue
+        return False
+    except Exception:
+        return False
 
 def fetch_local_health_news(lat, lon, location_name=None, language="en"):
     if not API_KEY:
@@ -31,7 +58,8 @@ If there are no recent relevant news items, return an empty array."""
         # Get structured response from OpenAI
         system_message = """You are a helpful assistant that provides current news about health and environmental risks. 
 Format your response as a JSON object with an 'articles' array containing news items.
-Each news item should have: title, description, source, link, and pub_date fields."""
+Each news item should have: title, description, source, link, and pub_date fields.
+The pub_date should be in ISO format (YYYY-MM-DD) or a clear date format."""
         
         response = openai_service.get_structured_completion(prompt, system_message)
         print(f"[DEBUG] Raw OpenAI response: {response}")
@@ -54,19 +82,23 @@ Each news item should have: title, description, source, link, and pub_date field
                 "articles": []
             }
 
+        # Filter out old news
+        recent_articles = [
+            {
+                "title": article.get("title", "No title"),
+                "description": article.get("description", "No description"),
+                "source": article.get("source", "Unknown"),
+                "link": article.get("link", ""),
+                "pub_date": article.get("pub_date", "")
+            }
+            for article in articles
+            if is_recent_news(article.get("pub_date"))
+        ]
+
         return {
             "source": "openai",
             "fetched_at": datetime.utcnow().isoformat(),
-            "articles": [
-                {
-                    "title": article.get("title", "No title"),
-                    "description": article.get("description", "No description"),
-                    "source": article.get("source", "Unknown"),
-                    "link": article.get("link", ""),
-                    "pub_date": article.get("pub_date", "")
-                }
-                for article in articles
-            ]
+            "articles": recent_articles
         }
 
     except Exception as e:

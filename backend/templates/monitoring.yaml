@@ -1,0 +1,89 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudWatch alarms for Health Exposure App'
+
+Resources:
+  HighErrorRateAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: health-exposure-high-error-rate
+      AlarmDescription: Alert when error rate exceeds 5% in 5 minutes
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref LambdaFunction
+      TreatMissingData: notBreaching
+
+  HighRequestRateAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: health-exposure-high-request-rate
+      AlarmDescription: Alert when request rate exceeds 100 requests per 5 minutes
+      MetricName: Invocations
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 100
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref LambdaFunction
+      TreatMissingData: notBreaching
+
+  HighCostAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: health-exposure-high-cost
+      AlarmDescription: Alert when daily cost exceeds $2
+      MetricName: EstimatedCharges
+      Namespace: AWS/Billing
+      Statistic: Maximum
+      Period: 86400
+      EvaluationPeriods: 1
+      Threshold: 2
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: Currency
+          Value: USD
+      TreatMissingData: notBreaching
+
+  SecurityEventLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/health-exposure-security
+      RetentionInDays: 30
+
+  SecurityEventMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref SecurityEventLogGroup
+      FilterPattern: '{ $.error = "Invalid API key" || $.error = "Origin not allowed" }'
+      MetricTransformations:
+        - MetricName: SecurityEvents
+          MetricNamespace: HealthExposure/Security
+          MetricValue: 1
+
+  SecurityEventAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: health-exposure-security-events
+      AlarmDescription: Alert when security events are detected
+      MetricName: SecurityEvents
+      Namespace: HealthExposure/Security
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
+Outputs:
+  SecurityLogGroupName:
+    Description: Name of the security events log group
+    Value: !Ref SecurityEventLogGroup 

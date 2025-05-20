@@ -10,6 +10,8 @@ from adapters.humidity import get_humidity
 from adapters.pollen import get_pollen
 from adapters.opencage import reverse_geocode
 from adapters.newsdata import fetch_local_health_news
+from validators import validate_coordinates, validate_h3_cell, validate_user_tier, validate_headers
+from rate_limiter import check_rate_limit
 import h3
 
 s3 = boto3.client("s3")
@@ -17,24 +19,103 @@ BUCKET_NAME = os.environ.get("BUCKET_NAME", "health-exposure-data")
 BASE_TTL_SECONDS = 3600  # default 1 hour for free tier
 NEWS_TTL_SECONDS = 43200  # 12 hours for news
 
+# CORS configuration
+ALLOWED_ORIGINS = [
+    "https://health-exposure.app",  # Production frontend
+    "exp://localhost:19000",        # Local development
+    "exp://192.168.1.*:19000"      # Local network development
+]
+
 def lambda_handler(event, context):
+    # Handle CORS preflight requests
+    if event.get("httpMethod") == "OPTIONS":
+        return handle_cors(event)
+        
+    # Get request details
     params = event.get("queryStringParameters") or {}
     path_params = event.get("pathParameters") or {}
     headers = event.get("headers") or {}
+    
+    # Validate origin
+    origin = headers.get("origin")
+    if not is_allowed_origin(origin):
+        print(json.dumps({
+            "error": "Origin not allowed",
+            "origin": origin,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }))
+        return error_response(403, "Origin not allowed")
+    
+    # Validate API key for third-party requests
+    api_key = headers.get("x-api-key")
+    expected_key = os.environ.get("HEALTH_EXPOSURE_API_KEY")
+    if not api_key:
+        print(json.dumps({
+            "error": "Missing API key",
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }))
+        return error_response(401, "API key is required")
+    if not expected_key:
+        print(json.dumps({
+            "error": "API key validation not configured",
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }))
+        return error_response(500, "API key validation not configured")
+    if api_key != expected_key:
+        print(json.dumps({
+            "error": "Invalid API key",
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }))
+        return error_response(401, "Invalid API key")
+
+    # Validate headers
+    is_valid, error = validate_headers(headers)
+    if not is_valid:
+        return error_response(400, error)
 
     # --- Simulated auth/user context ---
     user_tier = headers.get("x-user-tier", "free").lower()
-    user_id = headers.get("x-user-id", "guest")
     force_refresh = params.get("force_refresh", "false").lower() == "true"
 
+    # Validate user tier
+    is_valid, error = validate_user_tier(user_tier)
+    if not is_valid:
+        return error_response(400, error)
+
+    # Check rate limit
+    allowed, remaining, reset_time = check_rate_limit(user_tier)
+    if not allowed:
+        return {
+            "statusCode": 429,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": str(RATE_LIMITS.get(user_tier, RATE_LIMITS['free'])),
+                "X-RateLimit-Remaining": str(remaining),
+                "X-RateLimit-Reset": str(reset_time)
+            },
+            "body": json.dumps({
+                "error": "Rate limit exceeded",
+                "message": "Too many requests. Please try again later.",
+                "reset_time": reset_time
+            })
+        }
+
+    # Get coordinates or H3 cell
     if "lat" in params and "lon" in params:
-        lat = float(params["lat"])
-        lon = float(params["lon"])
-        h3_cell = h3.latlng_to_cell(lat, lon, 6)
+        try:
+            lat = float(params["lat"])
+            lon = float(params["lon"])
+            is_valid, error = validate_coordinates(lat, lon)
+            if not is_valid:
+                return error_response(400, error)
+            h3_cell = h3.latlng_to_cell(lat, lon, 6)
+        except ValueError:
+            return error_response(400, "Invalid latitude or longitude format")
     elif "h3_id" in path_params:
         h3_cell = path_params["h3_id"]
-        if not h3.is_valid_cell(h3_cell):
-            return error_response(400, "Invalid H3 index")
+        is_valid, error = validate_h3_cell(h3_cell)
+        if not is_valid:
+            return error_response(400, error)
         lat, lon = h3.cell_to_latlng(h3_cell)
     else:
         return error_response(400, "Missing lat/lon or h3_id")
@@ -76,7 +157,12 @@ def lambda_handler(event, context):
                     news = {"source": "openai", "error": str(e), "articles": []}
                     body['news'] = news
             
-            return success_response(body)
+            # Add rate limit info to response
+            body['rate_limit'] = {
+                'remaining': remaining,
+                'reset_time': reset_time
+            }
+            return success_response(body, origin)
     except s3.exceptions.NoSuchKey:
         pass
     except Exception as e:
@@ -88,8 +174,7 @@ def lambda_handler(event, context):
             "lat": lat,
             "lon": lon,
             "h3_cell": h3_cell,
-            "user_tier": user_tier,
-            "user_id": user_id
+            "user_tier": user_tier
         }
 
         location = reverse_geocode(lat, lon)
@@ -112,7 +197,11 @@ def lambda_handler(event, context):
                 "humidity": humidity,
                 "pollen": pollen
             },
-            "news": news
+            "news": news,
+            "rate_limit": {
+                'remaining': remaining,
+                'reset_time': reset_time
+            }
         }
 
         s3.put_object(
@@ -124,10 +213,10 @@ def lambda_handler(event, context):
             CacheControl=f"max-age={TTL_SECONDS}"
         )
 
-        return success_response(enriched)
+        return success_response(enriched, origin)
     except Exception as e:
         print(f"Error generating or saving data: {e}")
-        return error_response(500, "Internal server error")
+        return error_response(500, "Internal server error", origin)
 
 def is_stale(last_updated_unix, ttl_seconds):
     try:
@@ -135,16 +224,56 @@ def is_stale(last_updated_unix, ttl_seconds):
     except Exception:
         return True
 
-def success_response(body):
+def handle_cors(event):
+    """Handle CORS preflight requests"""
+    headers = event.get("headers", {})
+    origin = headers.get("origin")
+    
+    if not is_allowed_origin(origin):
+        return error_response(403, "Origin not allowed")
+        
+    return {
+        "statusCode": 204,
+        "headers": {
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type,X-User-Tier,X-Api-Key",
+            "Access-Control-Max-Age": "86400"  # 24 hours
+        }
+    }
+
+def is_allowed_origin(origin):
+    """Check if the origin is allowed"""
+    if not origin:
+        return False
+    return any(origin.startswith(allowed) for allowed in ALLOWED_ORIGINS)
+
+def is_valid_api_key(api_key):
+    """Validate API key"""
+    if not api_key:
+        return False
+    # TODO: Implement proper API key validation
+    # For now, we'll accept any non-empty key
+    return True
+
+def success_response(body, origin=None):
+    """Return success response with CORS headers"""
+    headers = {"Content-Type": "application/json"}
+    if origin and is_allowed_origin(origin):
+        headers["Access-Control-Allow-Origin"] = origin
     return {
         "statusCode": 200,
-        "headers": {"Content-Type": "application/json"},
+        "headers": headers,
         "body": json.dumps(body)
     }
 
-def error_response(code, message):
+def error_response(code, message, origin=None):
+    """Return error response with CORS headers"""
+    headers = {"Content-Type": "application/json"}
+    if origin and is_allowed_origin(origin):
+        headers["Access-Control-Allow-Origin"] = origin
     return {
         "statusCode": code,
-        "headers": {"Content-Type": "application/json"},
+        "headers": headers,
         "body": json.dumps({"error": message})
     }

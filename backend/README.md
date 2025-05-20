@@ -36,6 +36,7 @@ GET /cells?lat=60.17&lon=24.93
 ## 🛠 Components
 
 - **lambda_function.py** – main handler for generation and retrieval
+- **scheduler_function.py** – automated news data updates
 - **adapters/** – one module per data source:
   - `openweather.py`: air quality, humidity
   - `uv.py`: UV index
@@ -52,6 +53,11 @@ GET /cells?lat=60.17&lon=24.93
 - On first access, generates JSON and saves to S3
 - On subsequent calls, serves JSON unless TTL expired
 - Each adapter is modular and optionally TTL-aware
+- News data automatically updated via CloudWatch scheduler:
+  - Runs every 15 minutes
+  - Updates up to 10 oldest cells per run
+  - Prioritizes cells with news older than 6 hours
+  - Staggers updates to distribute load
 
 ---
 
@@ -60,6 +66,7 @@ GET /cells?lat=60.17&lon=24.93
 - AWS Lambda, deployed via GitHub Actions
 - Uses x86_64 Docker build for native Python packages
 - JSON files saved to S3 and optionally served via CloudFront
+- CloudWatch Event Rule triggers scheduler every 15 minutes
 
 ---
 
@@ -69,6 +76,7 @@ GET /cells?lat=60.17&lon=24.93
 backend/
 ├── lambda/
 │   ├── lambda_function.py
+│   ├── scheduler_function.py
 │   └── adapters/
 ├── Dockerfile
 ├── deploy.sh (optional)

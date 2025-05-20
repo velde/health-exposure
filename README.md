@@ -37,6 +37,7 @@ Scan QR code with Expo Go to run on your device.
 - Uses Uber H3 resolution 6 (~1.2 km² granularity)
 - Stores cached JSON in S3 (`health-exposure-data/`)
 - Serves via Lambda URL or public CloudFront endpoint
+- Automatically updates news data via scheduler (every 15 minutes)
 
 ### Data Adapters:
 - `openweather.py`: air quality (PM2.5, PM10, O₃, CO), humidity
@@ -45,6 +46,13 @@ Scan QR code with Expo Go to run on your device.
 - `tapwater.py`: tap water safety (OpenCage country check)
 - `opencage.py`: reverse geocoding
 - `newsdata.py`: health/safety news (optional)
+
+### Scheduler:
+- Runs every 15 minutes via CloudWatch Events
+- Checks all cells for news data older than 6 hours
+- Updates up to 10 oldest cells per run
+- Prioritizes cells with the oldest news first
+- Staggers updates throughout the day to distribute load
 
 ### Example API Usage:
 

@@ -29,10 +29,16 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ secrets.AWS_REGION }}
 
-    - name: Deploy to Lambda
+    - name: Deploy API Lambda
       run: |
         aws lambda update-function-code \
           --function-name health-exposure-fallback \
+          --zip-file fileb://backend/lambda_deploy.zip
+
+    - name: Deploy Scheduler Lambda
+      run: |
+        aws lambda update-function-code \
+          --function-name health-exposure-scheduler \
           --zip-file fileb://backend/lambda_deploy.zip
 
     - name: Invalidate CloudFront cache

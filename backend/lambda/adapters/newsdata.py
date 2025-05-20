@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from openai_service import OpenAIService
+from adapters.openai_service import OpenAIService
 
 API_KEY = os.getenv("OPENAI_API_KEY")
 

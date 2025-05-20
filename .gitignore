@@ -6,6 +6,8 @@ venv/
 
 # Lambda build artifacts
 lambda_deploy.zip
+scheduler.zip
+response.json
 
 # Python cache
 __pycache__/

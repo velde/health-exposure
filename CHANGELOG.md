@@ -9,3 +9,8 @@
 - Traffic-light UI for air quality, UV, pollen, humidity
 - Clickable rows with detail views
 - GitHub repo cleanup with `.gitignore` and `README.md`
+- Automated news data updates via CloudWatch scheduler
+  - 15-minute update interval
+  - Prioritized updates for oldest news
+  - Batch processing of up to 10 cells per run
+  - 6-hour news freshness threshold

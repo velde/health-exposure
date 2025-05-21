@@ -177,13 +177,56 @@ def lambda_handler(event, context):
             "user_tier": user_tier
         }
 
-        location = reverse_geocode(lat, lon)
-        air_quality = get_air_quality(request_context)
-        tap_water = is_tap_water_safe(request_context)
-        uv = get_uv_index(request_context)
-        humidity = get_humidity(request_context)
-        pollen = get_pollen(request_context)
-        news = fetch_local_health_news(lat, lon, location)
+        print(f"[INFO] Fetching data for coordinates: {lat}, {lon}")
+        
+        try:
+            location = reverse_geocode(lat, lon)
+            print(f"[INFO] Location: {location}")
+        except Exception as e:
+            print(f"[ERROR] Reverse geocoding failed: {e}")
+            location = "Unknown"
+
+        try:
+            air_quality = get_air_quality(request_context)
+            print(f"[INFO] Air quality data received")
+        except Exception as e:
+            print(f"[ERROR] Air quality fetch failed: {e}")
+            air_quality = {"error": str(e)}
+
+        try:
+            tap_water = is_tap_water_safe(request_context)
+            print(f"[INFO] Tap water data received")
+        except Exception as e:
+            print(f"[ERROR] Tap water fetch failed: {e}")
+            tap_water = {"error": str(e)}
+
+        try:
+            uv = get_uv_index(request_context)
+            print(f"[INFO] UV data received")
+        except Exception as e:
+            print(f"[ERROR] UV fetch failed: {e}")
+            uv = {"error": str(e)}
+
+        try:
+            humidity = get_humidity(request_context)
+            print(f"[INFO] Humidity data received")
+        except Exception as e:
+            print(f"[ERROR] Humidity fetch failed: {e}")
+            humidity = {"error": str(e)}
+
+        try:
+            pollen = get_pollen(request_context)
+            print(f"[INFO] Pollen data received")
+        except Exception as e:
+            print(f"[ERROR] Pollen fetch failed: {e}")
+            pollen = {"error": str(e)}
+
+        try:
+            news = fetch_local_health_news(lat, lon, location)
+            print(f"[INFO] News data received")
+        except Exception as e:
+            print(f"[ERROR] News fetch failed: {e}")
+            news = {"error": str(e), "articles": []}
         
         enriched = {
             "h3_cell": h3_cell,
@@ -204,19 +247,24 @@ def lambda_handler(event, context):
             }
         }
 
-        s3.put_object(
-            Bucket=BUCKET_NAME,
-            Key=key,
-            Body=json.dumps(enriched),
-            ContentType="application/json",
-            Metadata={"last_updated": str(enriched["last_updated"])},
-            CacheControl=f"max-age={TTL_SECONDS}"
-        )
+        try:
+            s3.put_object(
+                Bucket=BUCKET_NAME,
+                Key=key,
+                Body=json.dumps(enriched),
+                ContentType="application/json",
+                Metadata={"last_updated": str(enriched["last_updated"])},
+                CacheControl=f"max-age={TTL_SECONDS}"
+            )
+            print(f"[INFO] Successfully saved data to S3")
+        except Exception as e:
+            print(f"[ERROR] Failed to save to S3: {e}")
+            return error_response(500, f"Failed to save data: {str(e)}", origin)
 
         return success_response(enriched, origin)
     except Exception as e:
-        print(f"Error generating or saving data: {e}")
-        return error_response(500, "Internal server error", origin)
+        print(f"[ERROR] Unexpected error in data generation: {e}")
+        return error_response(500, f"Internal server error: {str(e)}", origin)
 
 def is_stale(last_updated_unix, ttl_seconds):
     try:

@@ -43,28 +43,43 @@ async function searchLocations(query: string): Promise<Location[]> {
   
   try {
     console.log('Searching locations with query:', query);
-    const response = await axios.get('https://nominatim.openstreetmap.org/search', {
-      params: {
-        q: query,
-        format: 'json',
-        limit: 5,
-        addressdetails: 1
-      },
+    const url = 'https://nominatim.openstreetmap.org/search';
+    const params = {
+      q: query,
+      format: 'json',
+      limit: 5,
+      addressdetails: 1
+    };
+    console.log('Request URL:', url);
+    console.log('Request params:', params);
+    
+    const response = await axios.get(url, {
+      params,
       headers: {
-        'Accept-Language': 'en'
+        'Accept-Language': 'en',
+        'User-Agent': 'HealthExposure/1.0' // Required by Nominatim's usage policy
       }
     });
     
     console.log('Geocoding Response:', response.data);
-    return response.data.map((result: NominatimResult) => ({
-      name: result.display_name,
-      lat: parseFloat(result.lat),
-      lon: parseFloat(result.lon),
-      street: result.address.road,
-      city: result.address.city || result.address.town,
-      region: result.address.state,
-      country: result.address.country
-    }));
+    if (!response.data || !Array.isArray(response.data)) {
+      console.error('Invalid response format:', response.data);
+      return [];
+    }
+
+    return response.data.map((result: NominatimResult) => {
+      const location = {
+        name: result.display_name,
+        lat: parseFloat(result.lat),
+        lon: parseFloat(result.lon),
+        street: result.address.road,
+        city: result.address.city || result.address.town,
+        region: result.address.state,
+        country: result.address.country
+      };
+      console.log('Processed location:', location);
+      return location;
+    });
   } catch (error) {
     console.error('Error searching locations:', error);
     if (axios.isAxiosError(error)) {

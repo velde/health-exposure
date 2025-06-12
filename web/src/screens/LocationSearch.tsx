@@ -13,7 +13,7 @@ import {
 } from '@chakra-ui/react';
 import { FaSearch } from 'react-icons/fa';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
+import apiClient from '../api/client';
 
 interface Location {
   name: string;
@@ -25,20 +25,51 @@ interface Location {
   country?: string;
 }
 
+interface GeocodingResult {
+  formatted: string;
+  geometry: {
+    lat: number;
+    lng: number;
+  };
+  components: {
+    road?: string;
+    city?: string;
+    town?: string;
+    state?: string;
+    country?: string;
+  };
+}
+
 async function searchLocations(query: string): Promise<Location[]> {
   if (query.length < 3) return [];
   
-  const response = await axios.get(`${import.meta.env.VITE_API_URL}/location/search`, {
-    params: { query }
-  });
-  return response.data;
+  try {
+    console.log('Searching locations with query:', query);
+    const response = await apiClient.get('/geocode', {
+      params: { query }
+    });
+    
+    console.log('Geocoding Response:', response.data);
+    return response.data.results.map((result: GeocodingResult) => ({
+      name: result.formatted,
+      lat: result.geometry.lat,
+      lon: result.geometry.lng,
+      street: result.components.road,
+      city: result.components.city || result.components.town,
+      region: result.components.state,
+      country: result.components.country
+    }));
+  } catch (error) {
+    console.error('Error searching locations:', error);
+    throw error;
+  }
 }
 
 function LocationSearch() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { data: locations, isLoading } = useQuery({
+  const { data: locations, isLoading, error } = useQuery({
     queryKey: ['locations', searchQuery],
     queryFn: () => searchLocations(searchQuery),
     enabled: searchQuery.length >= 3,
@@ -66,6 +97,12 @@ function LocationSearch() {
         {isLoading && (
           <Box textAlign="center" py={4}>
             <Spinner />
+          </Box>
+        )}
+
+        {error && (
+          <Box p={4} bg="red.50" color="red.500" borderRadius="md">
+            Error searching locations. Please try again.
           </Box>
         )}
 

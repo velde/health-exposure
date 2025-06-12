@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Alert, Animated, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Alert, Animated, RefreshControl, TouchableOpacity } from 'react-native';
 import * as Location from 'expo-location';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -8,13 +8,15 @@ import RiskRow from './components/RiskRow';
 import NewsCard from './components/NewsCard';
 import DetailScreen from './screens/DetailScreen';
 import NewsDetailScreen from './screens/NewsDetailScreen';
+import LocationSearchScreen from './screens/LocationSearchScreen';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 // Verify environment variable
 console.log('Environment check - API Key:', HEALTH_EXPOSURE_API_KEY ? 'Present' : 'Missing');
 
 const Stack = createNativeStackNavigator();
 
-function DashboardScreen({ navigation }) {
+function DashboardScreen({ navigation, route }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -59,8 +61,8 @@ function DashboardScreen({ navigation }) {
       setLastRefresh(Date.now());
       setLocationText(
         json.location
-          ? `📍 ${json.location}`
-          : `📍 Lat: ${latitude.toFixed(3)}, Lon: ${longitude.toFixed(3)}`
+          ? json.location
+          : `Lat: ${latitude.toFixed(3)}, Lon: ${longitude.toFixed(3)}`
       );
     } catch (err) {
       console.error('Error fetching data:', err);
@@ -111,23 +113,29 @@ function DashboardScreen({ navigation }) {
   );
 
   useEffect(() => {
-    (async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert('Permission Denied', 'Location access is required for this app to function.');
-          return;
-        }
+    if (route.params?.selectedLocation) {
+      const { name, lat, lon } = route.params.selectedLocation;
+      setLocationText(name);
+      fetchData(lat, lon);
+    } else {
+      (async () => {
+        try {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert('Permission Denied', 'Location access is required for this app to function.');
+            return;
+          }
 
-        const loc = await Location.getCurrentPositionAsync({});
-        await fetchData(loc.coords.latitude, loc.coords.longitude);
-      } catch (err) {
-        console.error('Error fetching or locating:', err);
-        setLoading(false);
-        setLocationText('📍 Location error');
-      }
-    })();
-  }, []);
+          const loc = await Location.getCurrentPositionAsync({});
+          await fetchData(loc.coords.latitude, loc.coords.longitude);
+        } catch (err) {
+          console.error('Error fetching or locating:', err);
+          setLoading(false);
+          setLocationText('📍 Location error');
+        }
+      })();
+    }
+  }, [route.params?.selectedLocation]);
 
   const riskRank = { high: 0, moderate: 1, low: 2 };
 
@@ -136,7 +144,10 @@ function DashboardScreen({ navigation }) {
     if (type === 'air_quality') return value.aqi >= 4 ? 'high' : value.aqi === 3 ? 'moderate' : 'low';
     if (type === 'uv') return value.uv_index > 6 ? 'high' : value.uv_index > 3 ? 'moderate' : 'low';
     if (type === 'pollen') return (value.birch || 0) > 100 ? 'high' : (value.birch || 0) > 20 ? 'moderate' : 'low';
-    if (type === 'tap_water') return value.tap_water_safe ? 'low' : 'high';
+    if (type === 'tap_water') {
+      console.log('Tap water value:', value);
+      return value.safe === true ? 'low' : 'moderate';
+    }
     if (type === 'humidity') return value.humidity > 60 ? 'high' : value.humidity < 30 ? 'low' : 'moderate';
     return 'low';
   };
@@ -173,7 +184,21 @@ function DashboardScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Health Exposure</Text>
-      <Text style={styles.location}>{locationText}</Text>
+      <TouchableOpacity 
+        style={styles.locationContainer}
+        onPress={() => navigation.navigate('LocationSearch')}
+      >
+        <View style={styles.leftContent}>
+          <MaterialCommunityIcons name="map-marker" size={24} color="#fff" style={styles.icon} />
+          <View>
+            <Text style={styles.locationText}>{locationText}</Text>
+            <Text style={styles.locationSubtext}>Tap to change location</Text>
+          </View>
+        </View>
+        <View style={styles.rightContent}>
+          <MaterialCommunityIcons name="chevron-right" size={24} color="#fff" />
+        </View>
+      </TouchableOpacity>
       <ScrollView 
         style={styles.scrollView}
         refreshControl={
@@ -243,6 +268,34 @@ export default function App() {
             headerTintColor: '#333',
           }}
         />
+        <Stack.Screen 
+          name="LocationSearch" 
+          component={LocationSearchScreen}
+          options={{
+            presentation: 'modal',
+            title: 'Search Location',
+            headerStyle: {
+              backgroundColor: '#fff',
+              borderBottomWidth: 0,
+              elevation: 0,
+              shadowOpacity: 0,
+            },
+            headerTintColor: '#333',
+            headerLeft: () => (
+              <TouchableOpacity 
+                onPress={() => navigation.goBack()}
+                style={{ marginLeft: 8 }}
+              >
+                <MaterialCommunityIcons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            ),
+            headerTitleStyle: {
+              fontSize: 18,
+              fontWeight: '600',
+            },
+            animation: 'slide_from_bottom',
+          }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -261,12 +314,42 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     textAlign: 'center',
   },
-  location: { 
-    fontSize: 16, 
-    color: '#666',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    textAlign: 'center',
+  locationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    marginHorizontal: 20,
+    marginVertical: 6,
+    borderRadius: 12,
+    backgroundColor: '#4a90e2', // Subtle blue background
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  leftContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  rightContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  icon: {
+    marginRight: 12,
+  },
+  locationText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  locationSubtext: {
+    color: '#fff',
+    fontSize: 12,
+    opacity: 0.8,
+    marginTop: 2,
   },
   scrollView: {
     flex: 1,

@@ -11,8 +11,10 @@ import {
   Grid,
   Badge,
   Spinner,
+  Link,
+  Divider,
 } from '@chakra-ui/react';
-import { FaMapMarkerAlt } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaExternalLinkAlt } from 'react-icons/fa';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../api/client';
 import axios from 'axios';
@@ -57,8 +59,12 @@ interface Humidity {
 
 interface Pollen {
   source: string;
-  level: string;
-  timestamp: number;
+  alder: number;
+  birch: number;
+  grass: number;
+  mugwort: number;
+  olive: number;
+  ragweed: number;
   error?: string;
 }
 
@@ -119,6 +125,26 @@ function Dashboard() {
     },
     enabled: !!selectedLocation
   });
+
+  const getAQIColor = (aqi: number) => {
+    if (aqi <= 1) return 'green';
+    if (aqi <= 2) return 'yellow';
+    if (aqi <= 3) return 'orange';
+    if (aqi <= 4) return 'red';
+    return 'purple';
+  };
+
+  const getUVColor = (uv: number) => {
+    if (uv <= 2) return 'green';
+    if (uv <= 5) return 'yellow';
+    if (uv <= 7) return 'orange';
+    if (uv <= 10) return 'red';
+    return 'purple';
+  };
+
+  const formatTimestamp = (timestamp: number) => {
+    return new Date(timestamp * 1000).toLocaleString();
+  };
 
   return (
     <Container maxW="container.sm" py={8}>
@@ -194,57 +220,138 @@ function Dashboard() {
               )}
 
               {environmentalData && (
-                <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+                <Stack spacing={6}>
+                  <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+                    <Box p={4} bg="gray.50" borderRadius="md">
+                      <Text fontWeight="medium">Air Quality</Text>
+                      {environmentalData.data.air_quality?.error ? (
+                        <Badge colorScheme="red">{environmentalData.data.air_quality.error}</Badge>
+                      ) : (
+                        <Stack spacing={1}>
+                          <Badge colorScheme={getAQIColor(environmentalData.data.air_quality?.aqi || 0)}>
+                            AQI: {environmentalData.data.air_quality?.aqi}
+                          </Badge>
+                          {environmentalData.data.air_quality?.pm2_5 && (
+                            <Text fontSize="sm">PM2.5: {environmentalData.data.air_quality.pm2_5} µg/m³</Text>
+                          )}
+                          {environmentalData.data.air_quality?.pm10 && (
+                            <Text fontSize="sm">PM10: {environmentalData.data.air_quality.pm10} µg/m³</Text>
+                          )}
+                          {environmentalData.data.air_quality?.o3 && (
+                            <Text fontSize="sm">O3: {environmentalData.data.air_quality.o3} µg/m³</Text>
+                          )}
+                          <Text fontSize="xs" color="gray.500">
+                            Source: {environmentalData.data.air_quality?.source}
+                          </Text>
+                        </Stack>
+                      )}
+                    </Box>
+
+                    <Box p={4} bg="gray.50" borderRadius="md">
+                      <Text fontWeight="medium">UV Index</Text>
+                      {environmentalData.data.uv?.error ? (
+                        <Badge colorScheme="red">{environmentalData.data.uv.error}</Badge>
+                      ) : (
+                        <Stack spacing={1}>
+                          <Badge colorScheme={getUVColor(environmentalData.data.uv?.uv_index || 0)}>
+                            {environmentalData.data.uv?.uv_index}
+                          </Badge>
+                          <Text fontSize="xs" color="gray.500">
+                            Source: {environmentalData.data.uv?.source}
+                          </Text>
+                        </Stack>
+                      )}
+                    </Box>
+
+                    <Box p={4} bg="gray.50" borderRadius="md">
+                      <Text fontWeight="medium">Tap Water</Text>
+                      {environmentalData.data.tap_water?.error ? (
+                        <Badge colorScheme="red">{environmentalData.data.tap_water.error}</Badge>
+                      ) : (
+                        <Stack spacing={1}>
+                          <Badge colorScheme={environmentalData.data.tap_water?.is_safe ? 'green' : 'red'}>
+                            {environmentalData.data.tap_water?.is_safe ? 'Safe' : 'Not Safe'}
+                          </Badge>
+                          <Text fontSize="sm">Country: {environmentalData.data.tap_water?.country}</Text>
+                          <Text fontSize="xs" color="gray.500">
+                            Source: {environmentalData.data.tap_water?.source}
+                          </Text>
+                        </Stack>
+                      )}
+                    </Box>
+
+                    <Box p={4} bg="gray.50" borderRadius="md">
+                      <Text fontWeight="medium">Humidity</Text>
+                      {environmentalData.data.humidity?.error ? (
+                        <Badge colorScheme="red">{environmentalData.data.humidity.error}</Badge>
+                      ) : (
+                        <Stack spacing={1}>
+                          <Text fontSize="lg">{environmentalData.data.humidity?.humidity}%</Text>
+                          <Text fontSize="xs" color="gray.500">
+                            Source: {environmentalData.data.humidity?.source}
+                          </Text>
+                          <Text fontSize="xs" color="gray.500">
+                            Updated: {formatTimestamp(environmentalData.data.humidity?.timestamp || 0)}
+                          </Text>
+                        </Stack>
+                      )}
+                    </Box>
+                  </Grid>
+
                   <Box p={4} bg="gray.50" borderRadius="md">
-                    <Text fontWeight="medium">Air Quality</Text>
-                    {environmentalData.data.air_quality?.error ? (
-                      <Badge colorScheme="red">{environmentalData.data.air_quality.error}</Badge>
+                    <Text fontWeight="medium" mb={2}>Pollen</Text>
+                    {environmentalData.data.pollen?.error ? (
+                      <Badge colorScheme="red">{environmentalData.data.pollen.error}</Badge>
                     ) : (
-                      <Stack spacing={1}>
-                        <Badge colorScheme="green">AQI: {environmentalData.data.air_quality?.aqi}</Badge>
-                        {environmentalData.data.air_quality?.pm2_5 && (
-                          <Text fontSize="sm">PM2.5: {environmentalData.data.air_quality.pm2_5} µg/m³</Text>
-                        )}
+                      <Stack spacing={2}>
+                        <Grid templateColumns="repeat(2, 1fr)" gap={2}>
+                          <Box>
+                            <Text fontSize="sm">Alder: {environmentalData.data.pollen?.alder}</Text>
+                            <Text fontSize="sm">Birch: {environmentalData.data.pollen?.birch}</Text>
+                            <Text fontSize="sm">Grass: {environmentalData.data.pollen?.grass}</Text>
+                          </Box>
+                          <Box>
+                            <Text fontSize="sm">Mugwort: {environmentalData.data.pollen?.mugwort}</Text>
+                            <Text fontSize="sm">Olive: {environmentalData.data.pollen?.olive}</Text>
+                            <Text fontSize="sm">Ragweed: {environmentalData.data.pollen?.ragweed}</Text>
+                          </Box>
+                        </Grid>
+                        <Text fontSize="xs" color="gray.500">
+                          Source: {environmentalData.data.pollen?.source}
+                        </Text>
                       </Stack>
                     )}
                   </Box>
 
-                  <Box p={4} bg="gray.50" borderRadius="md">
-                    <Text fontWeight="medium">UV Index</Text>
-                    {environmentalData.data.uv?.error ? (
-                      <Badge colorScheme="red">{environmentalData.data.uv.error}</Badge>
-                    ) : (
-                      <Badge colorScheme={environmentalData.data.uv?.uv_index > 6 ? 'red' : 'green'}>
-                        {environmentalData.data.uv?.uv_index}
-                      </Badge>
-                    )}
-                  </Box>
+                  {environmentalData.news?.articles && environmentalData.news.articles.length > 0 && (
+                    <Box>
+                      <Heading size="sm" mb={4}>Local Health News</Heading>
+                      <Stack spacing={4}>
+                        {environmentalData.news.articles.map((article, index) => (
+                          <Box key={index} p={4} bg="gray.50" borderRadius="md">
+                            <Text fontWeight="medium">{article.title}</Text>
+                            <Text fontSize="sm" mt={2}>{article.description}</Text>
+                            <Link
+                              href={article.url}
+                              isExternal
+                              color="blue.500"
+                              fontSize="sm"
+                              mt={2}
+                              display="inline-flex"
+                              alignItems="center"
+                            >
+                              Read more <Icon as={FaExternalLinkAlt} ml={1} />
+                            </Link>
+                          </Box>
+                        ))}
+                      </Stack>
+                    </Box>
+                  )}
 
-                  <Box p={4} bg="gray.50" borderRadius="md">
-                    <Text fontWeight="medium">Tap Water</Text>
-                    {environmentalData.data.tap_water?.error ? (
-                      <Badge colorScheme="red">{environmentalData.data.tap_water.error}</Badge>
-                    ) : (
-                      <Badge colorScheme={environmentalData.data.tap_water?.is_safe ? 'green' : 'red'}>
-                        {environmentalData.data.tap_water?.is_safe ? 'Safe' : 'Not Safe'}
-                      </Badge>
-                    )}
+                  <Box fontSize="xs" color="gray.500" textAlign="center">
+                    Last updated: {formatTimestamp(environmentalData.last_updated)}
                   </Box>
-
-                  <Box p={4} bg="gray.50" borderRadius="md">
-                    <Text fontWeight="medium">Pollen</Text>
-                    {environmentalData.data.pollen?.error ? (
-                      <Badge colorScheme="red">{environmentalData.data.pollen.error}</Badge>
-                    ) : (
-                      <Badge colorScheme={
-                        environmentalData.data.pollen?.level === 'high' ? 'red' :
-                        environmentalData.data.pollen?.level === 'moderate' ? 'yellow' : 'green'
-                      }>
-                        {environmentalData.data.pollen?.level}
-                      </Badge>
-                    )}
-                  </Box>
-                </Grid>
+                </Stack>
               )}
             </Stack>
           </Box>

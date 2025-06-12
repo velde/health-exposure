@@ -10,7 +10,7 @@ We currently support the following versions with security updates:
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability within Health Exposure, please send an email to [your-email@example.com]. All security vulnerabilities will be promptly addressed.
+If you discover a security vulnerability within Health Exposure, please send an email to feedback.stack021@passmail.net. All security vulnerabilities will be promptly addressed.
 
 Please include the following information in your report:
 - Type of issue (e.g. buffer overflow, SQL injection, cross-site scripting, etc.)

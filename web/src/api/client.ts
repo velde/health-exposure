@@ -9,4 +9,7 @@ const apiClient = axios.create({
   }
 });
 
+// Log the actual origin
+console.log('Current origin:', window.location.origin);
+
 export default apiClient; 

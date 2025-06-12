@@ -25,7 +25,7 @@ function Dashboard() {
   return (
     <Container maxW="container.sm" py={8}>
       <Stack gap={6}>
-        <Heading size="lg">Health Exposure</Heading>
+        <Heading size="lg">Health Exposure v1.0</Heading>
         
         <Box
           p={6}

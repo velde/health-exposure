@@ -1,54 +1,89 @@
-# React + TypeScript + Vite
+# Health Exposure Web Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern web application built with React, TypeScript, and Vite that displays environmental health data for any location.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Location Search**: Search and select any location using OpenStreetMap's Nominatim service
+- **Environmental Data Display**:
+  - Air Quality (AQI, PM2.5, PM10, O3)
+  - UV Index with color-coded severity
+  - Tap Water safety and country information
+  - Humidity levels with timestamps
+  - Detailed Pollen information (Alder, Birch, Grass, Mugwort, Olive, Ragweed)
+  - Local health news (when available)
+- **Real-time Updates**: Data is fetched from the Health Exposure API
+- **Responsive Design**: Works on both desktop and mobile devices
 
-## Expanding the ESLint configuration
+## Tech Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- React 18
+- TypeScript
+- Vite
+- Chakra UI for components
+- React Query for data fetching
+- React Router for navigation
+- Axios for API requests
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+## Getting Started
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   cd web
+   npm install
+   ```
+
+3. Create a `.env` file in the `web` directory with:
+   ```
+   VITE_API_URL=https://dokrd0asw0.execute-api.eu-north-1.amazonaws.com
+   VITE_API_KEY=your_api_key_here
+   ```
+
+4. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+## Development
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run lint` - Run ESLint
+- `npm run preview` - Preview production build
+
+## Project Structure
+
+```
+web/
+├── src/
+│   ├── api/          # API client and types
+│   ├── components/   # Reusable components
+│   ├── screens/      # Page components
+│   ├── App.tsx       # Main app component
+│   └── main.tsx      # Entry point
+├── public/           # Static assets
+└── index.html        # HTML template
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## API Integration
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+The web frontend integrates with the Health Exposure API to fetch environmental data. The API requires:
+- API key for authentication
+- Latitude and longitude coordinates
+- Proper CORS configuration
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+## Deployment
+
+The application is automatically deployed to Vercel when changes are pushed to the main branch. The production URL is:
+https://web-iota-one-12.vercel.app
+
+## Contributing
+
+1. Create a feature branch
+2. Make your changes
+3. Submit a pull request
+
+## License
+
+MIT

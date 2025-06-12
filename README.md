@@ -1,10 +1,10 @@
 # Health Exposure App
 
-A full-stack mobile application that informs users of their environmental health exposure based on their real-time location. Risk factors include air quality, UV index, pollen count, humidity, and other locally relevant alerts such as water safety and health-related news.
+A full-stack application that informs users of their environmental health exposure based on their real-time location. Risk factors include air quality, UV index, pollen count, humidity, and other locally relevant alerts such as water safety and health-related news.
 
 ---
 
-## 📱 Frontend
+## 📱 Mobile Frontend
 
 **Built with:** React Native + Expo
 
@@ -25,6 +25,35 @@ npx expo start
 ```
 
 Scan QR code with Expo Go to run on your device.
+
+---
+
+## 🌐 Web Frontend
+
+**Built with:** React + TypeScript + Vite + Chakra UI
+
+### Features:
+- Modern, responsive web interface
+- Location search using OpenStreetMap's Nominatim
+- Detailed environmental data display:
+  - Air Quality (AQI, PM2.5, PM10, O3)
+  - UV Index with color-coded severity
+  - Tap Water safety and country information
+  - Humidity levels with timestamps
+  - Detailed Pollen information
+  - Local health news
+- Real-time data updates
+- Mobile-friendly design
+
+### Getting Started
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Visit `http://localhost:5173` to view the app.
 
 ---
 

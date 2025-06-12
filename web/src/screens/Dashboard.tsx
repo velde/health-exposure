@@ -15,6 +15,7 @@ import {
 import { FaMapMarkerAlt } from 'react-icons/fa';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../api/client';
+import axios from 'axios';
 
 interface Location {
   name: string;
@@ -94,14 +95,27 @@ function Dashboard() {
     queryKey: ['environmentalData', selectedLocation?.lat, selectedLocation?.lon],
     queryFn: async () => {
       if (!selectedLocation) return null;
-      console.log('Making API request with key:', !!import.meta.env.VITE_API_KEY);
-      const response = await apiClient.get('/cells', {
-        params: {
-          lat: selectedLocation.lat,
-          lon: selectedLocation.lon
+      try {
+        console.log('Making API request with key:', !!import.meta.env.VITE_API_KEY);
+        console.log('Request params:', { lat: selectedLocation.lat, lon: selectedLocation.lon });
+        const response = await apiClient.get('/cells', {
+          params: {
+            lat: selectedLocation.lat,
+            lon: selectedLocation.lon
+          }
+        });
+        console.log('API Response:', response.data);
+        return response.data as EnvironmentalData;
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          console.error('API Error:', {
+            status: error.response?.status,
+            data: error.response?.data,
+            headers: error.response?.headers
+          });
         }
-      });
-      return response.data as EnvironmentalData;
+        throw error;
+      }
     },
     enabled: !!selectedLocation
   });

@@ -94,6 +94,7 @@ function Dashboard() {
     queryKey: ['environmentalData', selectedLocation?.lat, selectedLocation?.lon],
     queryFn: async () => {
       if (!selectedLocation) return null;
+      console.log('Making API request with key:', !!import.meta.env.VITE_API_KEY);
       const response = await apiClient.get('/cells', {
         params: {
           lat: selectedLocation.lat,

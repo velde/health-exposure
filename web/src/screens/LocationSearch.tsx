@@ -33,8 +33,10 @@ interface NominatimResult {
     road?: string;
     city?: string;
     town?: string;
+    village?: string;
     state?: string;
     country?: string;
+    postcode?: string;
   };
 }
 
@@ -42,52 +44,40 @@ async function searchLocations(query: string): Promise<Location[]> {
   if (query.length < 3) return [];
   
   try {
-    console.log('Searching locations with query:', query);
-    const url = 'https://nominatim.openstreetmap.org/search';
-    const params = {
-      q: query,
-      format: 'json',
-      limit: 5,
-      addressdetails: 1
-    };
-    console.log('Request URL:', url);
-    console.log('Request params:', params);
-    
-    const response = await axios.get(url, {
-      params,
+    const response = await axios.get('https://nominatim.openstreetmap.org/search', {
+      params: {
+        q: query,
+        format: 'json',
+        limit: 5,
+        addressdetails: 1,
+        'accept-language': 'en'
+      },
       headers: {
-        'Accept-Language': 'en',
-        'User-Agent': 'HealthExposure/1.0' // Required by Nominatim's usage policy
+        'User-Agent': 'HealthExposure/1.0'
       }
     });
     
-    console.log('Geocoding Response:', response.data);
     if (!response.data || !Array.isArray(response.data)) {
-      console.error('Invalid response format:', response.data);
       return [];
     }
 
     return response.data.map((result: NominatimResult) => {
-      const location = {
+      const address = result.address || {};
+      const city = address.city || address.town || address.village;
+      
+      return {
         name: result.display_name,
         lat: parseFloat(result.lat),
         lon: parseFloat(result.lon),
-        street: result.address.road,
-        city: result.address.city || result.address.town,
-        region: result.address.state,
-        country: result.address.country
+        street: address.road,
+        city: city,
+        region: address.state,
+        country: address.country
       };
-      console.log('Processed location:', location);
-      return location;
     });
   } catch (error) {
     console.error('Error searching locations:', error);
-    if (axios.isAxiosError(error)) {
-      console.error('Response data:', error.response?.data);
-      console.error('Response status:', error.response?.status);
-      console.error('Response headers:', error.response?.headers);
-    }
-    throw error;
+    return [];
   }
 }
 

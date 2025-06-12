@@ -23,10 +23,17 @@ NEWS_TTL_SECONDS = 43200  # 12 hours for news
 ALLOWED_ORIGINS = [
     "https://health-exposure.app",  # Production frontend
     "exp://localhost:19000",        # Local development
-    "exp://192.168.1.*:19000"      # Local network development
+    "exp://192.168.1.*:19000",     # Local network development
+    "https://web-iota-one-12.vercel.app"  # Vercel deployment
 ]
 
 def lambda_handler(event, context):
+    # Log the full event for debugging
+    print(json.dumps({
+        "event": event,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }))
+
     # Handle CORS preflight requests
     if event.get("httpMethod") == "OPTIONS":
         return handle_cors(event)
@@ -36,6 +43,19 @@ def lambda_handler(event, context):
     path_params = event.get("pathParameters") or {}
     headers = event.get("headers") or {}
     
+    # Log request details
+    print(json.dumps({
+        "request_details": {
+            "params": params,
+            "path_params": path_params,
+            "headers": headers,
+            "path": event.get("path"),
+            "resource": event.get("resource"),
+            "httpMethod": event.get("httpMethod")
+        },
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }))
+
     # Validate origin
     origin = headers.get("origin")
     if not is_allowed_origin(origin):

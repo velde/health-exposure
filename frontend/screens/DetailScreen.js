@@ -81,11 +81,11 @@ export default function DetailScreen({ route }) {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <MaterialCommunityIcons name={iconName} size={32} color="#333" style={styles.headerIcon} />
-        <Text style={styles.title}>{title}</Text>
+      <Text style={styles.title}>{title}</Text>
         <Text style={styles.description}>{getDescription()}</Text>
       </View>
       <View style={styles.content}>
-        {renderData()}
+      {renderData()}
       </View>
     </ScrollView>
   );

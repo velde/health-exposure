@@ -118,22 +118,22 @@ function DashboardScreen({ navigation, route }) {
       setLocationText(name);
       fetchData(lat, lon);
     } else {
-      (async () => {
-        try {
-          const { status } = await Location.requestForegroundPermissionsAsync();
-          if (status !== 'granted') {
-            Alert.alert('Permission Denied', 'Location access is required for this app to function.');
-            return;
-          }
-
-          const loc = await Location.getCurrentPositionAsync({});
-          await fetchData(loc.coords.latitude, loc.coords.longitude);
-        } catch (err) {
-          console.error('Error fetching or locating:', err);
-          setLoading(false);
-          setLocationText('📍 Location error');
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission Denied', 'Location access is required for this app to function.');
+          return;
         }
-      })();
+
+        const loc = await Location.getCurrentPositionAsync({});
+          await fetchData(loc.coords.latitude, loc.coords.longitude);
+      } catch (err) {
+        console.error('Error fetching or locating:', err);
+        setLoading(false);
+        setLocationText('📍 Location error');
+      }
+    })();
     }
   }, [route.params?.selectedLocation]);
 
@@ -211,19 +211,19 @@ function DashboardScreen({ navigation, route }) {
       >
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Current Risks</Text>
-          {sortedRisks.map((item, idx) => (
-            <RiskRow
-              key={idx}
-              type={item.label}
-              risk={item.risk}
-              onPress={() =>
-                navigation.navigate('Detail', {
-                  title: item.label,
-                  data: item.value
-                })
-              }
-            />
-          ))}
+        {sortedRisks.map((item, idx) => (
+          <RiskRow
+            key={idx}
+            type={item.label}
+            risk={item.risk}
+            onPress={() =>
+              navigation.navigate('Detail', {
+                title: item.label,
+                data: item.value
+              })
+            }
+          />
+        ))}
         </View>
 
         <View style={styles.section}>

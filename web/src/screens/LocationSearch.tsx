@@ -13,7 +13,7 @@ import {
 } from '@chakra-ui/react';
 import { FaSearch } from 'react-icons/fa';
 import { useQuery } from '@tanstack/react-query';
-import apiClient from '../api/client';
+import axios from 'axios';
 
 interface Location {
   name: string;
@@ -25,13 +25,11 @@ interface Location {
   country?: string;
 }
 
-interface GeocodingResult {
-  formatted: string;
-  geometry: {
-    lat: number;
-    lng: number;
-  };
-  components: {
+interface NominatimResult {
+  display_name: string;
+  lat: string;
+  lon: string;
+  address: {
     road?: string;
     city?: string;
     town?: string;
@@ -45,22 +43,35 @@ async function searchLocations(query: string): Promise<Location[]> {
   
   try {
     console.log('Searching locations with query:', query);
-    const response = await apiClient.get('/geocode', {
-      params: { query }
+    const response = await axios.get('https://nominatim.openstreetmap.org/search', {
+      params: {
+        q: query,
+        format: 'json',
+        limit: 5,
+        addressdetails: 1
+      },
+      headers: {
+        'Accept-Language': 'en'
+      }
     });
     
     console.log('Geocoding Response:', response.data);
-    return response.data.results.map((result: GeocodingResult) => ({
-      name: result.formatted,
-      lat: result.geometry.lat,
-      lon: result.geometry.lng,
-      street: result.components.road,
-      city: result.components.city || result.components.town,
-      region: result.components.state,
-      country: result.components.country
+    return response.data.map((result: NominatimResult) => ({
+      name: result.display_name,
+      lat: parseFloat(result.lat),
+      lon: parseFloat(result.lon),
+      street: result.address.road,
+      city: result.address.city || result.address.town,
+      region: result.address.state,
+      country: result.address.country
     }));
   } catch (error) {
     console.error('Error searching locations:', error);
+    if (axios.isAxiosError(error)) {
+      console.error('Response data:', error.response?.data);
+      console.error('Response status:', error.response?.status);
+      console.error('Response headers:', error.response?.headers);
+    }
     throw error;
   }
 }

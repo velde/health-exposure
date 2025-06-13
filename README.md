@@ -4,7 +4,7 @@ A full-stack application that informs users of their environmental health exposu
 
 ---
 
-## 📱 Mobile Frontend
+## Mobile Frontend
 
 **Built with:** React Native + Expo
 
@@ -28,7 +28,7 @@ Scan QR code with Expo Go to run on your device.
 
 ---
 
-## 🌐 Web Frontend
+## Web Frontend
 
 **Built with:** React + TypeScript + Vite + Chakra UI
 
@@ -57,7 +57,7 @@ Visit `http://localhost:5173` to view the app.
 
 ---
 
-## 🛰 Backend
+## Backend
 
 **Built with:** AWS Lambda (Python) + S3 + CloudFront
 
@@ -174,7 +174,7 @@ curl -H "x-api-key: YOUR_API_KEY" \
 
 ---
 
-## 🔄 Deployment
+## Deployment
 
 ### Backend CI/CD
 - AWS Lambda deployed automatically via GitHub Actions
@@ -186,7 +186,7 @@ curl -H "x-api-key: YOUR_API_KEY" \
 
 ---
 
-## 🔐 API Keys & Environment
+## API Keys & Environment
 
 Required environment variables:
 
@@ -202,17 +202,17 @@ Set these in the AWS Lambda environment config and `.env` locally as needed.
 
 ---
 
-## 🛣 Roadmap
+## Roadmap
 
 - Add refresh & pull-to-refresh
 - Add exposure history / graphs
 - Simulate premium tiers (shorter TTL, more detail)
 - Display health-related news (optional)
-- Add local alerts for disasters, smoke, or water quality
+- Add local alerts for crime, disasters, etc.
 
 ---
 
-## 📁 Repo Structure
+## Repo Structure
 
 ```
 health-exposure/
@@ -225,5 +225,8 @@ health-exposure/
 │   ├── App.js
 │   ├── components/
 │   └── screens/
+├── web/
+│   ├── src/
+│   │   ├── App.tsx
 └── README.md
 ```

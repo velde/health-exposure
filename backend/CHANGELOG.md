@@ -1,18 +1,18 @@
 
-# 🧾 CHANGELOG – Health Exposure Backend
+# CHANGELOG – Health Exposure Backend
 
 All notable changes and milestones to this backend will be documented here.
 
 ---
 
-## 📌 Milestone: Backend v1 Deployment (2025-05-08)
+## Milestone: Backend v1 Deployment (2025-05-08)
 
 **Summary:**  
 The backend for the Health Exposure app is now fully operational, automated, and production-ready. This marks the completion of the backend v1 milestone.
 
 ---
 
-### ✅ Key Features Implemented
+### Key Features Implemented
 
 - **Serverless Backend** with AWS Lambda, S3, API Gateway, and CloudFront
 - **Location-based health data** generated lazily by H3 index using OpenWeather API
@@ -29,19 +29,19 @@ The backend for the Health Exposure app is now fully operational, automated, and
 
 ---
 
-### 📁 Confirmed Deploy Artifacts
+### Confirmed Deploy Artifacts
 
 - `lambda_deploy.zip` created with:
   - Native `h3` build for x86_64
   - `lambda_function.py` + `adapters/openweather.py`
 - Object uploaded to S3:
-  - ✅ `CacheControl: max-age=3600`
-  - ✅ `Metadata: last_updated = <timestamp>`
-  - ✅ `ContentType: application/json`
+  - `CacheControl: max-age=3600`
+  - `Metadata: last_updated = <timestamp>`
+  - `ContentType: application/json`
 
 ---
 
-### 🛠 Next Steps
+### Next Steps
 
 - [ ] Begin scaffolding the mobile frontend (React Native + H3)
 - [ ] Add additional adapters (e.g. UV index, pollen)

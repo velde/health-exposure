@@ -38,7 +38,7 @@ def fetch_local_health_news(lat, lon, location_name=None, language="en"):
     try:
         # Use location name or coordinates in the query
         location = location_name or f"{lat},{lon}"
-        
+
         # Initialize OpenAI service
         openai_service = OpenAIService()
         

@@ -4,7 +4,7 @@ Serverless Python backend that computes environmental risk data per H3 cell and 
 
 ---
 
-## 🌐 API Overview
+## API Overview
 
 ### Endpoint:
 ```
@@ -33,7 +33,7 @@ GET /cells?lat=60.17&lon=24.93
 
 ---
 
-## 🛠 Components
+## Components
 
 - **lambda_function.py** – main handler for generation and retrieval
 - **scheduler_function.py** – automated news data updates
@@ -47,7 +47,7 @@ GET /cells?lat=60.17&lon=24.93
 
 ---
 
-## 🪄 Behavior
+## Behavior
 
 - Uses Uber H3 resolution 6
 - On first access, generates JSON and saves to S3
@@ -61,7 +61,7 @@ GET /cells?lat=60.17&lon=24.93
 
 ---
 
-## 🔄 Deployment
+## Deployment
 
 - AWS Lambda, deployed via GitHub Actions
 - Uses x86_64 Docker build for native Python packages
@@ -70,7 +70,7 @@ GET /cells?lat=60.17&lon=24.93
 
 ---
 
-## 📁 Folder Structure
+## Folder Structure
 
 ```
 backend/

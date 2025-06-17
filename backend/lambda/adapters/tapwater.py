@@ -33,11 +33,16 @@ def is_tap_water_safe(ctx):
         data = response.json()
         components = data["results"][0]["components"]
         country = components.get("country", "Unknown")
+        
+        # Debug logging
+        print(f"[DEBUG] Tap water check - Country from OpenCage: {country}")
+        print(f"[DEBUG] Tap water check - Is country in SAFE_COUNTRIES: {country in SAFE_COUNTRIES}")
+        print(f"[DEBUG] Tap water check - Available components: {components}")
 
         return {
             "source": "opencage+custom",
             "country": country,
-            "safe": country in SAFE_COUNTRIES
+            "is_safe": country in SAFE_COUNTRIES
         }
 
     except Exception as e:
@@ -45,5 +50,5 @@ def is_tap_water_safe(ctx):
         return {
             "source": "opencage+custom",
             "country": "Unknown",
-            "safe": None
+            "is_safe": None
         }

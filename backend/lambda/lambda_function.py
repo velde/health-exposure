@@ -252,7 +252,12 @@ def lambda_handler(event, context):
             uv_future = executor.submit(fetch_with_timeout, get_uv_index, request_context)
             humidity_future = executor.submit(fetch_with_timeout, get_humidity, request_context)
             pollen_future = executor.submit(fetch_with_timeout, get_pollen, request_context)
-            news_future = executor.submit(fetch_with_timeout, fetch_local_health_news, lat, lon, location)
+            
+            # TEMPORARILY COMMENTED OUT: News API call causing timeouts
+            # Create a wrapper function for news that accepts context
+            # def fetch_news_wrapper(context):
+            #     return fetch_local_health_news(lat, lon, location)
+            # news_future = executor.submit(fetch_with_timeout, fetch_news_wrapper, request_context)
 
             # Wait for all results with timeout
             try:
@@ -261,7 +266,8 @@ def lambda_handler(event, context):
                 uv = uv_future.result(timeout=10)
                 humidity = humidity_future.result(timeout=10)
                 pollen = pollen_future.result(timeout=10)
-                news = news_future.result(timeout=10)
+                # news = news_future.result(timeout=10)
+                news = {"source": "disabled", "articles": [], "note": "News temporarily disabled for testing"}
                 
                 print(f"[INFO] All data fetched successfully")
             except concurrent.futures.TimeoutError:
@@ -272,7 +278,8 @@ def lambda_handler(event, context):
                 uv = uv_future.result(timeout=1) if not uv_future.done() else {"error": "Timeout"}
                 humidity = humidity_future.result(timeout=1) if not humidity_future.done() else {"error": "Timeout"}
                 pollen = pollen_future.result(timeout=1) if not pollen_future.done() else {"error": "Timeout"}
-                news = news_future.result(timeout=1) if not news_future.done() else {"error": "Timeout", "articles": []}
+                # news = news_future.result(timeout=1) if not news_future.done() else {"error": "Timeout", "articles": []}
+                news = {"source": "disabled", "articles": [], "note": "News temporarily disabled for testing"}
 
         enriched = {
             "h3_cell": h3_cell,

@@ -16,6 +16,8 @@ import {
   AlertIcon,
   AlertTitle,
   AlertDescription,
+  Flex,
+  Heading,
 } from '@chakra-ui/react';
 import { FaSearch, FaLocationArrow } from 'react-icons/fa';
 import { useQuery } from '@tanstack/react-query';
@@ -111,7 +113,7 @@ async function getCurrentLocation(): Promise<Location | null> {
 function LocationSearch() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-  const [isGettingLocation, setIsGettingLocation] = useState(true);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const toast = useToast();
 
@@ -120,10 +122,6 @@ function LocationSearch() {
     queryFn: () => searchLocations(searchQuery),
     enabled: searchQuery.length >= 3,
   });
-
-  useEffect(() => {
-    handleUseCurrentLocation();
-  }, []);
 
   const handleLocationSelect = (location: Location) => {
     navigate('/', { state: { selectedLocation: location } });
@@ -155,6 +153,20 @@ function LocationSearch() {
   return (
     <Container maxW="container.sm" py={8}>
       <Stack gap={4}>
+        <Flex align="center" justify="space-between">
+          <Heading size="lg">Select Location</Heading>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/')}
+          >
+            Back to Dashboard
+          </Button>
+        </Flex>
+
+        <Text color="gray.600">
+          Choose a different location to view environmental data for that area.
+        </Text>
+
         <Button
           leftIcon={<Icon as={FaLocationArrow} />}
           colorScheme="blue"

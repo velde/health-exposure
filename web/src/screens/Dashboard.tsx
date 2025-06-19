@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -13,6 +14,7 @@ import {
   Spinner,
   Link,
   Divider,
+  useToast,
 } from '@chakra-ui/react';
 import { FaMapMarkerAlt, FaExternalLinkAlt } from 'react-icons/fa';
 import { useQuery } from '@tanstack/react-query';
@@ -91,23 +93,103 @@ interface EnvironmentalData {
 function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
-  const selectedLocation: Location | null = location.state?.selectedLocation || null;
+  const toast = useToast();
+  
+  // State for current location (auto-detected or manually selected)
+  const [currentLocation, setCurrentLocation] = useState<Location | null>(
+    location.state?.selectedLocation || null
+  );
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
 
   // Test environment variables
   console.log('API URL:', import.meta.env.VITE_API_URL);
   console.log('API Key exists:', !!import.meta.env.VITE_API_KEY);
 
+  // Function to get current location
+  const getCurrentLocation = (): Promise<Location> => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation is not supported by your browser'));
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            name: 'Current Location',
+            lat: position.coords.latitude,
+            lon: position.coords.longitude
+          });
+        },
+        (error) => {
+          let errorMessage = 'Unable to get your location';
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = 'Location access was denied. Please enable location services.';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = 'Location information is unavailable.';
+              break;
+            case error.TIMEOUT:
+              errorMessage = 'Location request timed out.';
+              break;
+          }
+          reject(new Error(errorMessage));
+        }
+      );
+    });
+  };
+
+  // Auto-detect location on component mount
+  useEffect(() => {
+    const detectLocation = async () => {
+      // If we already have a location from navigation state, use it
+      if (location.state?.selectedLocation) {
+        setCurrentLocation(location.state.selectedLocation);
+        return;
+      }
+
+      // Otherwise, try to get current location
+      setIsDetectingLocation(true);
+      try {
+        const detectedLocation = await getCurrentLocation();
+        setCurrentLocation(detectedLocation);
+        toast({
+          title: 'Location detected',
+          description: 'Using your current location',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to get location';
+        toast({
+          title: 'Location Error',
+          description: errorMessage,
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
+        console.error('Location detection failed:', error);
+      } finally {
+        setIsDetectingLocation(false);
+      }
+    };
+
+    detectLocation();
+  }, [location.state?.selectedLocation, toast]);
+
   const { data: environmentalData, isLoading, error } = useQuery({
-    queryKey: ['environmentalData', selectedLocation?.lat, selectedLocation?.lon],
+    queryKey: ['environmentalData', currentLocation?.lat, currentLocation?.lon],
     queryFn: async () => {
-      if (!selectedLocation) return null;
+      if (!currentLocation) return null;
       try {
         console.log('Making API request with key:', !!import.meta.env.VITE_API_KEY);
-        console.log('Request params:', { lat: selectedLocation.lat, lon: selectedLocation.lon });
+        console.log('Request params:', { lat: currentLocation.lat, lon: currentLocation.lon });
         const response = await apiClient.get('/cells', {
           params: {
-            lat: selectedLocation.lat,
-            lon: selectedLocation.lon
+            lat: currentLocation.lat,
+            lon: currentLocation.lon
           }
         });
         console.log('API Response:', response.data);
@@ -123,7 +205,7 @@ function Dashboard() {
         throw error;
       }
     },
-    enabled: !!selectedLocation
+    enabled: !!currentLocation
   });
 
   const getAQIColor = (aqi: number) => {
@@ -178,12 +260,23 @@ function Dashboard() {
               </Button>
             </Flex>
 
-            {selectedLocation ? (
+            {currentLocation ? (
               <Box p={4} bg="gray.50" borderRadius="md">
-                <Text fontWeight="medium">{selectedLocation.name}</Text>
+                <Text fontWeight="medium">{currentLocation.name}</Text>
                 <Text fontSize="sm" color="gray.600">
-                  Lat: {selectedLocation.lat.toFixed(4)}, Lon: {selectedLocation.lon.toFixed(4)}
+                  Lat: {currentLocation.lat.toFixed(4)}, Lon: {currentLocation.lon.toFixed(4)}
                 </Text>
+              </Box>
+            ) : isDetectingLocation ? (
+              <Box
+                p={4}
+                bg="gray.50"
+                borderRadius="md"
+                textAlign="center"
+                color="gray.500"
+              >
+                <Spinner size="sm" mr={2} />
+                Detecting your location...
               </Box>
             ) : (
               <Box
@@ -193,13 +286,44 @@ function Dashboard() {
                 textAlign="center"
                 color="gray.500"
               >
-                No location selected
+                <Text mb={2}>No location available</Text>
+                <Button
+                  size="sm"
+                  colorScheme="blue"
+                  onClick={async () => {
+                    setIsDetectingLocation(true);
+                    try {
+                      const detectedLocation = await getCurrentLocation();
+                      setCurrentLocation(detectedLocation);
+                      toast({
+                        title: 'Location detected',
+                        description: 'Using your current location',
+                        status: 'success',
+                        duration: 3000,
+                        isClosable: true,
+                      });
+                    } catch (error) {
+                      const errorMessage = error instanceof Error ? error.message : 'Failed to get location';
+                      toast({
+                        title: 'Location Error',
+                        description: errorMessage,
+                        status: 'error',
+                        duration: 5000,
+                        isClosable: true,
+                      });
+                    } finally {
+                      setIsDetectingLocation(false);
+                    }
+                  }}
+                >
+                  Try Again
+                </Button>
               </Box>
             )}
           </Stack>
         </Box>
 
-        {selectedLocation && (
+        {currentLocation && (
           <Box
             p={6}
             bg="white"

@@ -16,7 +16,7 @@ import {
   Divider,
   useToast,
 } from '@chakra-ui/react';
-import { FaMapMarkerAlt, FaExternalLinkAlt } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaExternalLinkAlt, FaSync } from 'react-icons/fa';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../api/client';
 import axios from 'axios';
@@ -100,6 +100,7 @@ function Dashboard() {
     location.state?.selectedLocation || null
   );
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [isPageRefresh, setIsPageRefresh] = useState(false);
 
   // Test environment variables
   console.log('API URL:', import.meta.env.VITE_API_URL);
@@ -178,6 +179,65 @@ function Dashboard() {
 
     detectLocation();
   }, [location.state?.selectedLocation, toast]);
+
+  // Handle browser refresh to update current location
+  useEffect(() => {
+    // Check if this is a page refresh
+    const isRefresh = performance.navigation.type === 1 || 
+                     document.visibilityState === 'visible' && sessionStorage.getItem('wasRefreshed') === 'true';
+    
+    if (isRefresh && !location.state?.selectedLocation) {
+      setIsPageRefresh(true);
+      refreshCurrentLocation();
+    }
+
+    const handleBeforeUnload = () => {
+      // Mark that we're about to refresh
+      sessionStorage.setItem('wasRefreshed', 'true');
+    };
+
+    const handleVisibilityChange = () => {
+      // When page becomes visible again (user returns to tab), refresh location
+      if (!document.hidden && !location.state?.selectedLocation && !isPageRefresh) {
+        refreshCurrentLocation();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [location.state?.selectedLocation, isPageRefresh]);
+
+  // Function to refresh current location
+  const refreshCurrentLocation = async () => {
+    setIsDetectingLocation(true);
+    try {
+      const detectedLocation = await getCurrentLocation();
+      setCurrentLocation(detectedLocation);
+      toast({
+        title: 'Location updated',
+        description: 'Refreshed to your current location',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get location';
+      toast({
+        title: 'Location Error',
+        description: errorMessage,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsDetectingLocation(false);
+    }
+  };
 
   const { data: environmentalData, isLoading, error } = useQuery({
     queryKey: ['environmentalData', currentLocation?.lat, currentLocation?.lon],
@@ -262,10 +322,27 @@ function Dashboard() {
 
             {currentLocation ? (
               <Box p={4} bg="gray.50" borderRadius="md">
-                <Text fontWeight="medium">{currentLocation.name}</Text>
-                <Text fontSize="sm" color="gray.600">
-                  Lat: {currentLocation.lat.toFixed(4)}, Lon: {currentLocation.lon.toFixed(4)}
-                </Text>
+                <Flex justify="space-between" align="center">
+                  <Box>
+                    <Text fontWeight="medium">{currentLocation.name}</Text>
+                    <Text fontSize="sm" color="gray.600">
+                      Lat: {currentLocation.lat.toFixed(4)}, Lon: {currentLocation.lon.toFixed(4)}
+                    </Text>
+                  </Box>
+                  {currentLocation.name === 'Current Location' && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      leftIcon={<Icon as={FaSync} />}
+                      onClick={refreshCurrentLocation}
+                      isLoading={isDetectingLocation}
+                      loadingText="Refreshing..."
+                      title="Refresh current location"
+                    >
+                      Refresh
+                    </Button>
+                  )}
+                </Flex>
               </Box>
             ) : isDetectingLocation ? (
               <Box
@@ -276,7 +353,7 @@ function Dashboard() {
                 color="gray.500"
               >
                 <Spinner size="sm" mr={2} />
-                Detecting your location...
+                {isPageRefresh ? 'Refreshing location...' : 'Detecting your location...'}
               </Box>
             ) : (
               <Box

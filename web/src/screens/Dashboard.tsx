@@ -106,6 +106,32 @@ function Dashboard() {
   console.log('API URL:', import.meta.env.VITE_API_URL);
   console.log('API Key exists:', !!import.meta.env.VITE_API_KEY);
 
+  // Function to reverse geocode coordinates to get place name
+  const reverseGeocode = async (lat: number, lon: number): Promise<string> => {
+    try {
+      const response = await axios.get('https://nominatim.openstreetmap.org/reverse', {
+        params: {
+          lat: lat,
+          lon: lon,
+          format: 'json',
+          'accept-language': 'en',
+          addressdetails: 1
+        },
+        headers: {
+          'User-Agent': 'HealthExposure/1.0'
+        }
+      });
+      
+      if (response.data && response.data.display_name) {
+        return response.data.display_name;
+      }
+      return 'Current Location';
+    } catch (error) {
+      console.error('Reverse geocoding failed:', error);
+      return 'Current Location';
+    }
+  };
+
   // Function to get current location
   const getCurrentLocation = (): Promise<Location> => {
     return new Promise((resolve, reject) => {
@@ -115,11 +141,17 @@ function Dashboard() {
       }
 
       navigator.geolocation.getCurrentPosition(
-        (position) => {
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          
+          // Get place name from coordinates
+          const placeName = await reverseGeocode(lat, lon);
+          
           resolve({
-            name: 'Current Location',
-            lat: position.coords.latitude,
-            lon: position.coords.longitude
+            name: placeName,
+            lat: lat,
+            lon: lon
           });
         },
         (error) => {
@@ -203,12 +235,38 @@ function Dashboard() {
       }
     };
 
+    // Handle mobile pull-to-refresh and other refresh events
+    const handlePageShow = (event: PageTransitionEvent) => {
+      // Check if this is a page refresh (not navigation)
+      if (event.persisted || sessionStorage.getItem('wasRefreshed') === 'true') {
+        if (!location.state?.selectedLocation) {
+          setIsPageRefresh(true);
+          refreshCurrentLocation();
+        }
+        sessionStorage.removeItem('wasRefreshed');
+      }
+    };
+
+    // Handle focus events (when user returns to the app)
+    const handleFocus = () => {
+      if (!location.state?.selectedLocation && !isPageRefresh) {
+        // Small delay to avoid conflicts with other refresh events
+        setTimeout(() => {
+          refreshCurrentLocation();
+        }, 100);
+      }
+    };
+
     window.addEventListener('beforeunload', handleBeforeUnload);
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pageshow', handlePageShow);
+    window.addEventListener('focus', handleFocus);
 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('focus', handleFocus);
     };
   }, [location.state?.selectedLocation, isPageRefresh]);
 
@@ -329,7 +387,7 @@ function Dashboard() {
                       Lat: {currentLocation.lat.toFixed(4)}, Lon: {currentLocation.lon.toFixed(4)}
                     </Text>
                   </Box>
-                  {currentLocation.name === 'Current Location' && (
+                  {!location.state?.selectedLocation && (
                     <Button
                       size="sm"
                       variant="ghost"

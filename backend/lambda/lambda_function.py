@@ -151,6 +151,8 @@ def lambda_handler(event, context):
         
         # Only use cached data if not forcing refresh and data is not stale
         if not force_refresh and body.get("last_updated") and not is_stale(body["last_updated"], TTL_SECONDS):
+            print(f"[INFO] Cache HIT for h3_cell: {h3_cell}")
+            
             # Check if news needs refresh based on its own TTL
             news = body.get('news', {})
             fetched_at = news.get('fetched_at')
@@ -164,6 +166,7 @@ def lambda_handler(event, context):
                     pass
             
             if refresh_news:
+                print(f"[INFO] News cache expired, refreshing news for h3_cell: {h3_cell}")
                 location = body.get('location') or 'Unknown'
                 try:
                     news = fetch_local_health_news(lat, lon, location)
@@ -178,20 +181,38 @@ def lambda_handler(event, context):
                     print(f"[ERROR] News fetch failed: {e}")
                     news = {"source": "openai", "error": str(e), "articles": []}
                     body['news'] = news
+            else:
+                print(f"[INFO] Using cached news for h3_cell: {h3_cell}")
             
             # Add rate limit info to response
             body['rate_limit'] = {
                 'remaining': remaining,
                 'reset_time': reset_time
             }
+            
+            # Add cache status to response
+            body['cache_status'] = {
+                'hit': True,
+                'source': 'S3',
+                'last_updated': body.get('last_updated'),
+                'ttl_seconds': TTL_SECONDS,
+                'force_refresh': force_refresh
+            }
+            
             return success_response(body, origin)
+        else:
+            if force_refresh:
+                print(f"[INFO] Cache MISS - Force refresh requested for h3_cell: {h3_cell}")
+            else:
+                print(f"[INFO] Cache MISS - Data stale for h3_cell: {h3_cell}")
     except s3.exceptions.NoSuchKey:
-        pass
+        print(f"[INFO] Cache MISS - No cached data found for h3_cell: {h3_cell}")
     except Exception as e:
         print(f"Error reading from S3: {e}")
 
     # If we get here, either there was no cached data, it was stale, or force_refresh was true
     try:
+        print(f"[INFO] Fetching fresh data for h3_cell: {h3_cell}")
         request_context = {
             "lat": lat,
             "lon": lon,
@@ -269,6 +290,13 @@ def lambda_handler(event, context):
             "rate_limit": {
                 'remaining': remaining,
                 'reset_time': reset_time
+            },
+            "cache_status": {
+                'hit': False,
+                'source': 'fresh_data',
+                'last_updated': int(time.time()),
+                'ttl_seconds': TTL_SECONDS,
+                'force_refresh': force_refresh
             }
         }
 

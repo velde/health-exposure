@@ -127,23 +127,23 @@ function Dashboard() {
   });
 
   const getAQIColor = (aqi: number) => {
-    if (aqi <= 1) return 'green';
-    if (aqi <= 2) return 'yellow';
-    if (aqi <= 3) return 'orange';
-    if (aqi <= 4) return 'red';
-    return 'purple';
+    if (aqi <= 1) return 'green.50';
+    if (aqi <= 2) return 'yellow.50';
+    if (aqi <= 3) return 'orange.50';
+    if (aqi <= 4) return 'red.50';
+    return 'purple.50';
   };
 
   const getUVColor = (uv: number) => {
-    if (uv <= 2) return 'green';
-    if (uv <= 5) return 'yellow';
-    if (uv <= 7) return 'orange';
-    if (uv <= 10) return 'red';
-    return 'purple';
+    if (uv <= 2) return 'green.50';
+    if (uv <= 5) return 'yellow.50';
+    if (uv <= 7) return 'orange.50';
+    if (uv <= 10) return 'red.50';
+    return 'purple.50';
   };
 
   const getTapWaterColor = (isSafe: boolean) => {
-    return isSafe ? 'green' : 'red';
+    return isSafe ? 'green.50' : 'red.50';
   };
 
   const formatTimestamp = (timestamp: number) => {
@@ -226,13 +226,15 @@ function Dashboard() {
               {environmentalData && (
                 <Stack spacing={6}>
                   <Grid templateColumns="repeat(2, 1fr)" gap={4}>
-                    <Box p={4} bg={getAQIColor(environmentalData.data.air_quality?.aqi || 0)} borderRadius="md" color="white">
+                    <Box p={4} bg={getAQIColor(environmentalData.data.air_quality?.aqi || 0)} borderRadius="md">
                       <Text fontWeight="medium">Air Quality</Text>
                       {environmentalData.data.air_quality?.error ? (
                         <Badge colorScheme="red">{environmentalData.data.air_quality.error}</Badge>
                       ) : (
                         <Stack spacing={1}>
-                          <Text>AQI: {environmentalData.data.air_quality?.aqi}</Text>
+                          <Badge colorScheme={getAQIColor(environmentalData.data.air_quality?.aqi || 0).replace('.50', '')}>
+                            AQI: {environmentalData.data.air_quality?.aqi}
+                          </Badge>
                           {environmentalData.data.air_quality?.pm2_5 && (
                             <Text fontSize="sm">PM2.5: {environmentalData.data.air_quality.pm2_5} µg/m³</Text>
                           )}
@@ -246,24 +248,28 @@ function Dashboard() {
                       )}
                     </Box>
 
-                    <Box p={4} bg={getUVColor(environmentalData.data.uv?.uv_index || 0)} borderRadius="md" color="white">
+                    <Box p={4} bg={getUVColor(environmentalData.data.uv?.uv_index || 0)} borderRadius="md">
                       <Text fontWeight="medium">UV Index</Text>
                       {environmentalData.data.uv?.error ? (
                         <Badge colorScheme="red">{environmentalData.data.uv.error}</Badge>
                       ) : (
                         <Stack spacing={1}>
-                          <Text>{environmentalData.data.uv?.uv_index}</Text>
+                          <Badge colorScheme={getUVColor(environmentalData.data.uv?.uv_index || 0).replace('.50', '')}>
+                            {environmentalData.data.uv?.uv_index}
+                          </Badge>
                         </Stack>
                       )}
                     </Box>
 
-                    <Box p={4} bg={getTapWaterColor(environmentalData.data.tap_water?.is_safe || false)} borderRadius="md" color="white">
+                    <Box p={4} bg={getTapWaterColor(environmentalData.data.tap_water?.is_safe || false)} borderRadius="md">
                       <Text fontWeight="medium">Tap Water</Text>
                       {environmentalData.data.tap_water?.error ? (
                         <Badge colorScheme="red">{environmentalData.data.tap_water.error}</Badge>
                       ) : (
                         <Stack spacing={1}>
-                          <Text>{environmentalData.data.tap_water?.is_safe ? 'Safe' : 'Not Safe'}</Text>
+                          <Badge colorScheme={environmentalData.data.tap_water?.is_safe ? 'green' : 'red'}>
+                            {environmentalData.data.tap_water?.is_safe ? 'Safe' : 'Not Safe'}
+                          </Badge>
                           <Text fontSize="sm">Country: {environmentalData.data.tap_water?.country}</Text>
                         </Stack>
                       )}

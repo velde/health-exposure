@@ -1,9 +1,9 @@
-
 import os
 import requests
 
 API_KEY = os.getenv("OPENWEATHER_API_KEY")
 CURRENT_WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather"
+REQUEST_TIMEOUT = 5  # 5 seconds timeout
 
 def get_humidity(ctx):
     lat, lon = ctx["lat"], ctx["lon"]
@@ -18,7 +18,7 @@ def get_humidity(ctx):
     }
 
     try:
-        response = requests.get(CURRENT_WEATHER_URL, params=params)
+        response = requests.get(CURRENT_WEATHER_URL, params=params, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
         data = response.json()
         humidity = data.get("main", {}).get("humidity")

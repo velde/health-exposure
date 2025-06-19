@@ -2,6 +2,8 @@ import json
 import boto3
 import os
 import time
+import asyncio
+import concurrent.futures
 from datetime import datetime, timezone
 from adapters.openweather import get_air_quality
 from adapters.tapwater import is_tap_water_safe
@@ -199,6 +201,7 @@ def lambda_handler(event, context):
 
         print(f"[INFO] Fetching data for coordinates: {lat}, {lon}")
         
+        # Get location first (needed for news)
         try:
             location = reverse_geocode(lat, lon)
             print(f"[INFO] Location: {location}")
@@ -206,48 +209,50 @@ def lambda_handler(event, context):
             print(f"[ERROR] Reverse geocoding failed: {e}")
             location = "Unknown"
 
-        try:
-            air_quality = get_air_quality(request_context)
-            print(f"[INFO] Air quality data received")
-        except Exception as e:
-            print(f"[ERROR] Air quality fetch failed: {e}")
-            air_quality = {"error": str(e)}
+        # Fetch all data in parallel with timeout
+        def fetch_with_timeout(func, context, timeout=8):
+            """Fetch data with timeout"""
+            try:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(func, context)
+                    return future.result(timeout=timeout)
+            except concurrent.futures.TimeoutError:
+                print(f"[WARNING] {func.__name__} timed out after {timeout}s")
+                return {"error": "Request timed out"}
+            except Exception as e:
+                print(f"[ERROR] {func.__name__} failed: {e}")
+                return {"error": str(e)}
 
-        try:
-            tap_water = is_tap_water_safe(request_context)
-            print(f"[INFO] Tap water data received")
-        except Exception as e:
-            print(f"[ERROR] Tap water fetch failed: {e}")
-            tap_water = {"error": str(e)}
+        # Fetch all environmental data in parallel
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+            # Submit all tasks
+            air_quality_future = executor.submit(fetch_with_timeout, get_air_quality, request_context)
+            tap_water_future = executor.submit(fetch_with_timeout, is_tap_water_safe, request_context)
+            uv_future = executor.submit(fetch_with_timeout, get_uv_index, request_context)
+            humidity_future = executor.submit(fetch_with_timeout, get_humidity, request_context)
+            pollen_future = executor.submit(fetch_with_timeout, get_pollen, request_context)
+            news_future = executor.submit(fetch_with_timeout, fetch_local_health_news, lat, lon, location)
 
-        try:
-            uv = get_uv_index(request_context)
-            print(f"[INFO] UV data received")
-        except Exception as e:
-            print(f"[ERROR] UV fetch failed: {e}")
-            uv = {"error": str(e)}
+            # Wait for all results with timeout
+            try:
+                air_quality = air_quality_future.result(timeout=10)
+                tap_water = tap_water_future.result(timeout=10)
+                uv = uv_future.result(timeout=10)
+                humidity = humidity_future.result(timeout=10)
+                pollen = pollen_future.result(timeout=10)
+                news = news_future.result(timeout=10)
+                
+                print(f"[INFO] All data fetched successfully")
+            except concurrent.futures.TimeoutError:
+                print(f"[ERROR] Some API calls timed out")
+                # Return partial data
+                air_quality = air_quality_future.result(timeout=1) if not air_quality_future.done() else {"error": "Timeout"}
+                tap_water = tap_water_future.result(timeout=1) if not tap_water_future.done() else {"error": "Timeout"}
+                uv = uv_future.result(timeout=1) if not uv_future.done() else {"error": "Timeout"}
+                humidity = humidity_future.result(timeout=1) if not humidity_future.done() else {"error": "Timeout"}
+                pollen = pollen_future.result(timeout=1) if not pollen_future.done() else {"error": "Timeout"}
+                news = news_future.result(timeout=1) if not news_future.done() else {"error": "Timeout", "articles": []}
 
-        try:
-            humidity = get_humidity(request_context)
-            print(f"[INFO] Humidity data received")
-        except Exception as e:
-            print(f"[ERROR] Humidity fetch failed: {e}")
-            humidity = {"error": str(e)}
-
-        try:
-            pollen = get_pollen(request_context)
-            print(f"[INFO] Pollen data received")
-        except Exception as e:
-            print(f"[ERROR] Pollen fetch failed: {e}")
-            pollen = {"error": str(e)}
-
-        try:
-            news = fetch_local_health_news(lat, lon, location)
-            print(f"[INFO] News data received")
-        except Exception as e:
-            print(f"[ERROR] News fetch failed: {e}")
-            news = {"error": str(e), "articles": []}
-        
         enriched = {
             "h3_cell": h3_cell,
             "timestamp": datetime.now(timezone.utc).isoformat(),

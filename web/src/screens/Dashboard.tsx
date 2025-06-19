@@ -173,6 +173,33 @@ function Dashboard() {
     });
   };
 
+  // Function to refresh current location
+  const refreshCurrentLocation = async () => {
+    setIsDetectingLocation(true);
+    try {
+      const detectedLocation = await getCurrentLocation();
+      setCurrentLocation(detectedLocation);
+      toast({
+        title: 'Location updated',
+        description: 'Refreshed to your current location',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get location';
+      toast({
+        title: 'Location Error',
+        description: errorMessage,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsDetectingLocation(false);
+    }
+  };
+
   // Auto-detect location on component mount
   useEffect(() => {
     const detectLocation = async () => {
@@ -214,88 +241,44 @@ function Dashboard() {
 
   // Handle browser refresh to update current location
   useEffect(() => {
-    // Check if this is a page refresh
-    const isRefresh = performance.navigation.type === 1 || 
-                     document.visibilityState === 'visible' && sessionStorage.getItem('wasRefreshed') === 'true';
+    console.log('Refresh detection useEffect running');
+    console.log('Current location state:', location.state?.selectedLocation);
+    console.log('Performance navigation type:', performance.navigation.type);
     
-    if (isRefresh && !location.state?.selectedLocation) {
-      setIsPageRefresh(true);
+    // Simple refresh detection - check if this is a page reload
+    const isPageReload = performance.navigation.type === 1;
+    
+    if (isPageReload && !location.state?.selectedLocation) {
+      console.log('Page reload detected, refreshing location');
       refreshCurrentLocation();
     }
 
+    // Handle beforeunload to mark refresh
     const handleBeforeUnload = () => {
-      // Mark that we're about to refresh
+      console.log('Beforeunload event - marking refresh');
       sessionStorage.setItem('wasRefreshed', 'true');
     };
 
-    const handleVisibilityChange = () => {
-      // When page becomes visible again (user returns to tab), refresh location
-      if (!document.hidden && !location.state?.selectedLocation && !isPageRefresh) {
+    // Handle pageshow event for better refresh detection
+    const handlePageShow = (event: PageTransitionEvent) => {
+      console.log('Pageshow event:', event.persisted);
+      const wasRefreshed = sessionStorage.getItem('wasRefreshed') === 'true';
+      console.log('Was refreshed flag:', wasRefreshed);
+      if (wasRefreshed && !location.state?.selectedLocation) {
+        console.log('Pageshow refresh detected, updating location');
+        sessionStorage.removeItem('wasRefreshed');
         refreshCurrentLocation();
       }
     };
 
-    // Handle mobile pull-to-refresh and other refresh events
-    const handlePageShow = (event: PageTransitionEvent) => {
-      // Check if this is a page refresh (not navigation)
-      if (event.persisted || sessionStorage.getItem('wasRefreshed') === 'true') {
-        if (!location.state?.selectedLocation) {
-          setIsPageRefresh(true);
-          refreshCurrentLocation();
-        }
-        sessionStorage.removeItem('wasRefreshed');
-      }
-    };
-
-    // Handle focus events (when user returns to the app)
-    const handleFocus = () => {
-      if (!location.state?.selectedLocation && !isPageRefresh) {
-        // Small delay to avoid conflicts with other refresh events
-        setTimeout(() => {
-          refreshCurrentLocation();
-        }, 100);
-      }
-    };
-
     window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('pageshow', handlePageShow);
-    window.addEventListener('focus', handleFocus);
 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pageshow', handlePageShow);
-      window.removeEventListener('focus', handleFocus);
     };
-  }, [location.state?.selectedLocation, isPageRefresh]);
-
-  // Function to refresh current location
-  const refreshCurrentLocation = async () => {
-    setIsDetectingLocation(true);
-    try {
-      const detectedLocation = await getCurrentLocation();
-      setCurrentLocation(detectedLocation);
-      toast({
-        title: 'Location updated',
-        description: 'Refreshed to your current location',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to get location';
-      toast({
-        title: 'Location Error',
-        description: errorMessage,
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-    } finally {
-      setIsDetectingLocation(false);
-    }
-  };
+  }, [location.state?.selectedLocation]);
 
   const { data: environmentalData, isLoading, error } = useQuery({
     queryKey: ['environmentalData', currentLocation?.lat, currentLocation?.lon],

@@ -1,5 +1,5 @@
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -15,9 +15,16 @@ import {
   Link,
   Divider,
   useToast,
-  Tooltip,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalCloseButton,
+  useDisclosure,
+  IconButton
 } from '@chakra-ui/react';
-import { FaMapMarkerAlt, FaExternalLinkAlt, FaSync } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaExternalLinkAlt, FaSync, FaInfoCircle } from 'react-icons/fa';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../api/client';
 import axios from 'axios';
@@ -125,6 +132,8 @@ function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [selectedCard, setSelectedCard] = useState<string>('');
   
   // State for current location (auto-detected or manually selected)
   const [currentLocation, setCurrentLocation] = useState<Location | null>(
@@ -673,6 +682,41 @@ Consider staying indoors during high pollen periods if you're sensitive.
 Data source: Open-Meteo Air Quality API`;
   };
 
+  const handleInfoClick = (cardType: string) => {
+    setSelectedCard(cardType);
+    onOpen();
+  };
+
+  const getModalContent = () => {
+    switch (selectedCard) {
+      case 'air_quality':
+        return {
+          title: 'Air Quality Information',
+          content: getAirQualityExplanation()
+        };
+      case 'uv':
+        return {
+          title: 'UV Index Information',
+          content: getUVExplanation()
+        };
+      case 'conditions':
+        return {
+          title: 'Weather Conditions Information',
+          content: getConditionsExplanation()
+        };
+      case 'pollen':
+        return {
+          title: 'Pollen Information',
+          content: getPollenExplanation()
+        };
+      default:
+        return {
+          title: 'Information',
+          content: 'No information available.'
+        };
+    }
+  };
+
   return (
     <Container maxW="container.sm" py={6}>
       <Stack gap={5}>
@@ -868,147 +912,124 @@ Data source: Open-Meteo Air Quality API`;
 
                 {environmentalData && (
                   <Stack spacing={3}>
-                    <Tooltip 
-                      label={getAirQualityExplanation()} 
-                      placement="top" 
-                      hasArrow 
-                      bg="gray.800" 
-                      color="white" 
-                      p={4} 
-                      borderRadius="md"
-                      maxW="300px"
-                      whiteSpace="pre-line"
-                    >
-                      <Box p={3} bg={getAQIColor(environmentalData.data.air_quality?.aqi || 0)} borderRadius="md" cursor="pointer">
+                    <Box p={3} bg={getAQIColor(environmentalData.data.air_quality?.aqi || 0)} borderRadius="md">
+                      <Flex justify="space-between" align="start">
                         <Text fontWeight="medium">Air Quality</Text>
-                        {environmentalData.data.air_quality?.error ? (
-                          <Badge colorScheme="red">{environmentalData.data.air_quality.error}</Badge>
-                        ) : (
-                          <Stack spacing={1}>
-                            <Badge colorScheme={getAQIColor(environmentalData.data.air_quality?.aqi || 0).replace('.50', '')}>
-                              AQI: {environmentalData.data.air_quality?.aqi}
-                            </Badge>
-                            {environmentalData.data.air_quality?.pm2_5 && (
-                              <Text fontSize="sm" color="gray.600">
-                                PM2.5: {environmentalData.data.air_quality.pm2_5} µg/m³
-                              </Text>
-                            )}
-                            {environmentalData.data.air_quality?.pm10 && (
-                              <Text fontSize="sm" color="gray.600">
-                                PM10: {environmentalData.data.air_quality.pm10} µg/m³
-                              </Text>
-                            )}
-                          </Stack>
-                        )}
-                      </Box>
-                    </Tooltip>
+                        <IconButton
+                          aria-label="Air quality information"
+                          icon={<FaInfoCircle />}
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleInfoClick('air_quality')}
+                        />
+                      </Flex>
+                      {environmentalData.data.air_quality?.error ? (
+                        <Badge colorScheme="red">{environmentalData.data.air_quality.error}</Badge>
+                      ) : (
+                        <Stack spacing={1}>
+                          <Badge colorScheme={getAQIColor(environmentalData.data.air_quality?.aqi || 0).replace('.50', '')}>
+                            {environmentalData.data.air_quality?.aqi || 'N/A'}
+                          </Badge>
+                          <Text fontSize="sm" color="gray.600">
+                            PM2.5: {environmentalData.data.air_quality?.pm2_5?.toFixed(1) || 'N/A'} µg/m³
+                          </Text>
+                          <Text fontSize="sm" color="gray.600">
+                            PM10: {environmentalData.data.air_quality?.pm10?.toFixed(1) || 'N/A'} µg/m³
+                          </Text>
+                        </Stack>
+                      )}
+                    </Box>
 
-                    <Tooltip 
-                      label={getUVExplanation()} 
-                      placement="top" 
-                      hasArrow 
-                      bg="gray.800" 
-                      color="white" 
-                      p={4} 
-                      borderRadius="md"
-                      maxW="300px"
-                      whiteSpace="pre-line"
-                    >
-                      <Box p={3} bg={getUVColor(environmentalData.data.uv?.uv_index || 0)} borderRadius="md" cursor="pointer">
+                    <Box p={3} bg={getUVColor(environmentalData.data.uv?.uv_index || 0)} borderRadius="md">
+                      <Flex justify="space-between" align="start">
                         <Text fontWeight="medium">UV Index</Text>
-                        {environmentalData.data.uv?.error ? (
-                          <Badge colorScheme="red">{environmentalData.data.uv.error}</Badge>
-                        ) : (
-                          <Stack spacing={1}>
-                            <Badge colorScheme={getUVColor(environmentalData.data.uv?.uv_index || 0).replace('.50', '')}>
-                              {environmentalData.data.uv?.uv_index}
-                            </Badge>
-                            {environmentalData.data.uv?.max_uv && (
-                              <Text fontSize="sm" color="gray.600">
-                                Max: {environmentalData.data.uv?.max_uv} at {formatTime(environmentalData.data.uv?.max_uv_time || '')}
-                              </Text>
-                            )}
-                            {environmentalData.data.weather?.sunrise && (
-                              <Text fontSize="sm" color="gray.600">
-                                Sunrise: {formatTime(new Date(environmentalData.data.weather.sunrise * 1000).toISOString())}
-                              </Text>
-                            )}
-                            {environmentalData.data.weather?.sunset && (
-                              <Text fontSize="sm" color="gray.600">
-                                Sunset: {formatTime(new Date(environmentalData.data.weather.sunset * 1000).toISOString())}
-                              </Text>
-                            )}
-                          </Stack>
-                        )}
-                      </Box>
-                    </Tooltip>
-
-                    <Tooltip 
-                      label={getConditionsExplanation()} 
-                      placement="top" 
-                      hasArrow 
-                      bg="gray.800" 
-                      color="white" 
-                      p={4} 
-                      borderRadius="md"
-                      maxW="300px"
-                      whiteSpace="pre-line"
-                    >
-                      <Box p={3} bg={getConditionsColor(environmentalData.data.humidity?.humidity || 0, environmentalData.data.weather?.pressure || 0)} borderRadius="md" cursor="pointer">
-                        <Text fontWeight="medium">Conditions</Text>
-                        {environmentalData.data.humidity?.error ? (
-                          <Badge colorScheme="red">{environmentalData.data.humidity.error}</Badge>
-                        ) : (
-                          <Stack spacing={1}>
-                            <Badge colorScheme={getConditionsColor(environmentalData.data.humidity?.humidity || 0, environmentalData.data.weather?.pressure || 0).replace('.50', '')}>
-                              {getConditionsStatus(environmentalData.data.humidity?.humidity || 0, environmentalData.data.weather?.pressure || 0)}
-                            </Badge>
+                        <IconButton
+                          aria-label="UV index information"
+                          icon={<FaInfoCircle />}
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleInfoClick('uv')}
+                        />
+                      </Flex>
+                      {environmentalData.data.uv?.error ? (
+                        <Badge colorScheme="red">{environmentalData.data.uv.error}</Badge>
+                      ) : (
+                        <Stack spacing={1}>
+                          <Badge colorScheme={getUVColor(environmentalData.data.uv?.uv_index || 0).replace('.50', '')}>
+                            {environmentalData.data.uv?.uv_index?.toFixed(1) || 'N/A'}
+                          </Badge>
+                          <Text fontSize="sm" color="gray.600">
+                            Current: {environmentalData.data.uv?.uv_index?.toFixed(1) || 'N/A'}
+                          </Text>
+                          {environmentalData.data.uv?.max_uv && (
                             <Text fontSize="sm" color="gray.600">
-                              Humidity: {environmentalData.data.humidity?.humidity}%
+                              Max: {environmentalData.data.uv.max_uv.toFixed(1)} at {formatTime(environmentalData.data.uv.max_uv_time || '')}
                             </Text>
-                            {environmentalData.data.weather?.pressure && (
-                              <Text fontSize="sm" color="gray.600">
-                                Pressure: {environmentalData.data.weather.pressure} hPa
-                              </Text>
-                            )}
-                          </Stack>
-                        )}
-                      </Box>
-                    </Tooltip>
+                          )}
+                        </Stack>
+                      )}
+                    </Box>
 
-                    <Tooltip 
-                      label={getPollenExplanation()} 
-                      placement="top" 
-                      hasArrow 
-                      bg="gray.800" 
-                      color="white" 
-                      p={4} 
-                      borderRadius="md"
-                      maxW="300px"
-                      whiteSpace="pre-line"
-                    >
-                      <Box p={3} bg={getPollenColor(environmentalData.data.pollen)} borderRadius="md" cursor="pointer">
+                    <Box p={3} bg={getConditionsColor(environmentalData.data.humidity?.humidity || 0, environmentalData.data.weather?.pressure || 0)} borderRadius="md">
+                      <Flex justify="space-between" align="start">
+                        <Text fontWeight="medium">Conditions</Text>
+                        <IconButton
+                          aria-label="Weather conditions information"
+                          icon={<FaInfoCircle />}
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleInfoClick('conditions')}
+                        />
+                      </Flex>
+                      {environmentalData.data.humidity?.error ? (
+                        <Badge colorScheme="red">{environmentalData.data.humidity.error}</Badge>
+                      ) : (
+                        <Stack spacing={1}>
+                          <Badge colorScheme={getConditionsColor(environmentalData.data.humidity?.humidity || 0, environmentalData.data.weather?.pressure || 0).replace('.50', '')}>
+                            {getConditionsStatus(environmentalData.data.humidity?.humidity || 0, environmentalData.data.weather?.pressure || 0)}
+                          </Badge>
+                          <Text fontSize="sm" color="gray.600">
+                            Humidity: {environmentalData.data.humidity?.humidity}%
+                          </Text>
+                          {environmentalData.data.weather?.pressure && (
+                            <Text fontSize="sm" color="gray.600">
+                              Pressure: {environmentalData.data.weather.pressure} hPa
+                            </Text>
+                          )}
+                        </Stack>
+                      )}
+                    </Box>
+
+                    <Box p={3} bg={getPollenColor(environmentalData.data.pollen)} borderRadius="md">
+                      <Flex justify="space-between" align="start">
                         <Text fontWeight="medium" mb={2}>Pollen</Text>
-                        {environmentalData.data.pollen?.error ? (
-                          <Badge colorScheme="red">{environmentalData.data.pollen.error}</Badge>
-                        ) : (
-                          <Stack spacing={2}>
-                            <Grid templateColumns="repeat(2, 1fr)" gap={2}>
-                              <Box>
-                                <Text fontSize="sm">Alder: {environmentalData.data.pollen?.alder}</Text>
-                                <Text fontSize="sm">Birch: {environmentalData.data.pollen?.birch}</Text>
-                                <Text fontSize="sm">Grass: {environmentalData.data.pollen?.grass}</Text>
-                              </Box>
-                              <Box>
-                                <Text fontSize="sm">Mugwort: {environmentalData.data.pollen?.mugwort}</Text>
-                                <Text fontSize="sm">Olive: {environmentalData.data.pollen?.olive}</Text>
-                                <Text fontSize="sm">Ragweed: {environmentalData.data.pollen?.ragweed}</Text>
-                              </Box>
-                            </Grid>
-                          </Stack>
-                        )}
-                      </Box>
-                    </Tooltip>
+                        <IconButton
+                          aria-label="Pollen information"
+                          icon={<FaInfoCircle />}
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleInfoClick('pollen')}
+                        />
+                      </Flex>
+                      {environmentalData.data.pollen?.error ? (
+                        <Badge colorScheme="red">{environmentalData.data.pollen.error}</Badge>
+                      ) : (
+                        <Stack spacing={2}>
+                          <Grid templateColumns="repeat(2, 1fr)" gap={2}>
+                            <Box>
+                              <Text fontSize="sm">Alder: {environmentalData.data.pollen?.alder}</Text>
+                              <Text fontSize="sm">Birch: {environmentalData.data.pollen?.birch}</Text>
+                              <Text fontSize="sm">Grass: {environmentalData.data.pollen?.grass}</Text>
+                            </Box>
+                            <Box>
+                              <Text fontSize="sm">Mugwort: {environmentalData.data.pollen?.mugwort}</Text>
+                              <Text fontSize="sm">Olive: {environmentalData.data.pollen?.olive}</Text>
+                              <Text fontSize="sm">Ragweed: {environmentalData.data.pollen?.ragweed}</Text>
+                            </Box>
+                          </Grid>
+                        </Stack>
+                      )}
+                    </Box>
 
                     <Box fontSize="xs" color="gray.500" textAlign="center">
                       Last updated: {formatTimestamp(environmentalData.last_updated)}
@@ -1020,6 +1041,18 @@ Data source: Open-Meteo Air Quality API`;
           </>
         )}
       </Stack>
+
+      {/* Information Modal */}
+      <Modal isOpen={isOpen} onClose={onClose} size="lg">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>{getModalContent().title}</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <Text whiteSpace="pre-line">{getModalContent().content}</Text>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </Container>
   );
 }

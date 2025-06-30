@@ -345,44 +345,27 @@ function Dashboard() {
           borderWidth="1px"
           borderColor="gray.200"
         >
-          <Stack gap={4}>
-            <Flex align="center" justify="space-between">
-              <Text fontSize="lg" fontWeight="medium">
-                Selected Location
-              </Text>
-              <Button
-                leftIcon={<Icon as={FaMapMarkerAlt} />}
-                colorScheme="blue"
-                variant="outline"
-                onClick={() => navigate('/location-search')}
-              >
-                Change Location
-              </Button>
-            </Flex>
-
+          <Stack gap={4} align="center">
             {currentLocation ? (
-              <Box p={4} bg="gray.50" borderRadius="md">
-                <Flex justify="space-between" align="center">
-                  <Box>
-                    <Text fontWeight="medium">{currentLocation.name}</Text>
-                    <Text fontSize="sm" color="gray.600">
-                      Lat: {currentLocation.lat.toFixed(4)}, Lon: {currentLocation.lon.toFixed(4)}
-                    </Text>
-                  </Box>
-                  {!location.state?.selectedLocation && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      leftIcon={<Icon as={FaSync} />}
-                      onClick={refreshCurrentLocation}
-                      isLoading={isDetectingLocation}
-                      loadingText="Refreshing..."
-                      title="Refresh current location"
-                    >
-                      Refresh
-                    </Button>
-                  )}
-                </Flex>
+              <Box p={4} bg="gray.50" borderRadius="md" textAlign="center" w="full">
+                <Text fontWeight="medium" fontSize="lg">{currentLocation.name}</Text>
+                <Text fontSize="sm" color="gray.600" mt={1}>
+                  Lat: {currentLocation.lat.toFixed(4)}, Lon: {currentLocation.lon.toFixed(4)}
+                </Text>
+                {!location.state?.selectedLocation && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    leftIcon={<Icon as={FaSync} />}
+                    onClick={refreshCurrentLocation}
+                    isLoading={isDetectingLocation}
+                    loadingText="Refreshing..."
+                    title="Refresh current location"
+                    mt={2}
+                  >
+                    Refresh
+                  </Button>
+                )}
               </Box>
             ) : isDetectingLocation ? (
               <Box
@@ -391,6 +374,7 @@ function Dashboard() {
                 borderRadius="md"
                 textAlign="center"
                 color="gray.500"
+                w="full"
               >
                 <Spinner size="sm" mr={2} />
                 Detecting your location...
@@ -402,6 +386,7 @@ function Dashboard() {
                 borderRadius="md"
                 textAlign="center"
                 color="gray.500"
+                w="full"
               >
                 <Text mb={2}>No location available</Text>
                 <Button
@@ -437,6 +422,15 @@ function Dashboard() {
                 </Button>
               </Box>
             )}
+
+            <Button
+              leftIcon={<Icon as={FaMapMarkerAlt} />}
+              colorScheme="blue"
+              variant="outline"
+              onClick={() => navigate('/location-search')}
+            >
+              Change Location
+            </Button>
           </Stack>
         </Box>
 

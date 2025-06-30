@@ -291,7 +291,8 @@ function Dashboard() {
         const response = await apiClient.get('/cells', {
           params: {
             lat: currentLocation.lat,
-            lon: currentLocation.lon
+            lon: currentLocation.lon,
+            force_refresh: 'true'
           }
         });
         console.log('API Response:', response.data);

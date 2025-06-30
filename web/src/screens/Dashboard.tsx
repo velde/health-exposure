@@ -481,6 +481,36 @@ function Dashboard() {
     }
   };
 
+  // Function to convert wind direction degrees to cardinal directions
+  const getWindDirection = (degrees: number): string => {
+    if (degrees === null || degrees === undefined) return '';
+    
+    // Normalize degrees to 0-360 range
+    const normalized = ((degrees % 360) + 360) % 360;
+    
+    // Define cardinal directions with their degree ranges
+    const directions = [
+      { name: 'N', min: 337.5, max: 22.5 },
+      { name: 'NE', min: 22.5, max: 67.5 },
+      { name: 'E', min: 67.5, max: 112.5 },
+      { name: 'SE', min: 112.5, max: 157.5 },
+      { name: 'S', min: 157.5, max: 202.5 },
+      { name: 'SW', min: 202.5, max: 247.5 },
+      { name: 'W', min: 247.5, max: 292.5 },
+      { name: 'NW', min: 292.5, max: 337.5 }
+    ];
+    
+    // Find the matching direction
+    for (const direction of directions) {
+      if (normalized >= direction.min && normalized < direction.max) {
+        return direction.name;
+      }
+    }
+    
+    // Fallback to North for edge cases
+    return 'N';
+  };
+
   return (
     <Container maxW="container.sm" py={6}>
       <Stack gap={5}>
@@ -496,7 +526,7 @@ function Dashboard() {
         >
           <Stack gap={3} align="center">
             {currentLocation ? (
-              <Box p={4} bg="gray.50" borderRadius="md" textAlign="center" w="full">
+              <Box p={3} bg="gray.50" borderRadius="md" textAlign="center" w="full">
                 <Text fontWeight="medium" fontSize="lg">{currentLocation.name}</Text>
                 <Text fontSize="sm" color="gray.600" mt={1}>
                   Lat: {currentLocation.lat.toFixed(4)}, Lon: {currentLocation.lon.toFixed(4)}
@@ -518,7 +548,7 @@ function Dashboard() {
               </Box>
             ) : isDetectingLocation ? (
               <Box
-                p={4}
+                p={3}
                 bg="gray.50"
                 borderRadius="md"
                 textAlign="center"
@@ -530,7 +560,7 @@ function Dashboard() {
               </Box>
             ) : (
               <Box
-                p={4}
+                p={3}
                 bg="gray.50"
                 borderRadius="md"
                 textAlign="center"
@@ -626,7 +656,7 @@ function Dashboard() {
                             {environmentalData.data.weather?.weather?.description?.charAt(0).toUpperCase() + environmentalData.data.weather?.weather?.description?.slice(1)}
                           </Text>
                           <Text fontSize="sm" color="gray.600">
-                            Wind: {(environmentalData.data.weather?.wind?.speed || 0).toFixed(1)} m/s
+                            Wind: {(environmentalData.data.weather?.wind?.speed || 0).toFixed(1)} m/s {getWindDirection(environmentalData.data.weather?.wind?.direction)}
                           </Text>
                           {environmentalData.data.weather?.visibility && (
                             <Text fontSize="sm" color="gray.600">
@@ -676,7 +706,7 @@ function Dashboard() {
 
                 {environmentalData && (
                   <Stack spacing={3}>
-                    <Box p={4} bg={getAQIColor(environmentalData.data.air_quality?.aqi || 0)} borderRadius="md">
+                    <Box p={3} bg={getAQIColor(environmentalData.data.air_quality?.aqi || 0)} borderRadius="md">
                       <Text fontWeight="medium">Air Quality</Text>
                       {environmentalData.data.air_quality?.error ? (
                         <Badge colorScheme="red">{environmentalData.data.air_quality.error}</Badge>
@@ -699,7 +729,7 @@ function Dashboard() {
                       )}
                     </Box>
 
-                    <Box p={4} bg={getUVColor(environmentalData.data.uv?.uv_index || 0)} borderRadius="md">
+                    <Box p={3} bg={getUVColor(environmentalData.data.uv?.uv_index || 0)} borderRadius="md">
                       <Text fontWeight="medium">UV Index</Text>
                       {environmentalData.data.uv?.error ? (
                         <Badge colorScheme="red">{environmentalData.data.uv.error}</Badge>
@@ -727,7 +757,7 @@ function Dashboard() {
                       )}
                     </Box>
 
-                    <Box p={4} bg={getConditionsColor(environmentalData.data.humidity?.humidity || 0, environmentalData.data.weather?.pressure || 0)} borderRadius="md">
+                    <Box p={3} bg={getConditionsColor(environmentalData.data.humidity?.humidity || 0, environmentalData.data.weather?.pressure || 0)} borderRadius="md">
                       <Text fontWeight="medium">Conditions</Text>
                       {environmentalData.data.humidity?.error ? (
                         <Badge colorScheme="red">{environmentalData.data.humidity.error}</Badge>
@@ -748,7 +778,7 @@ function Dashboard() {
                       )}
                     </Box>
 
-                    <Box p={4} bg="gray.50" borderRadius="md">
+                    <Box p={3} bg="gray.50" borderRadius="md">
                       <Text fontWeight="medium" mb={2}>Pollen</Text>
                       {environmentalData.data.pollen?.error ? (
                         <Badge colorScheme="red">{environmentalData.data.pollen.error}</Badge>

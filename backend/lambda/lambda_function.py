@@ -25,13 +25,13 @@ NEWS_TTL_SECONDS = 43200  # 12 hours for news
 ADAPTER_VERSIONS = {
     "air_quality": 1,
     "tap_water": 1, 
-    "uv": 2,  # Updated to include max UV
+    "uv": 3,  # Updated to use history and forecast data for accurate daylight peak
     "weather": 1,  # New weather adapter
     "pollen": 1
 }
 
 # Current overall data version - increment when any adapter changes
-CURRENT_DATA_VERSION = 2
+CURRENT_DATA_VERSION = 3
 
 # CORS configuration
 ALLOWED_ORIGINS = [

@@ -482,19 +482,19 @@ function Dashboard() {
   };
 
   return (
-    <Container maxW="container.sm" py={8}>
-      <Stack gap={6}>
+    <Container maxW="container.sm" py={6}>
+      <Stack gap={5}>
         <Heading size="lg" textAlign="center">Health Exposure</Heading>
         
         <Box
-          p={6}
+          p={5}
           bg="white"
           borderRadius="lg"
           boxShadow="sm"
           borderWidth="1px"
           borderColor="gray.200"
         >
-          <Stack gap={4} align="center">
+          <Stack gap={3} align="center">
             {currentLocation ? (
               <Box p={4} bg="gray.50" borderRadius="md" textAlign="center" w="full">
                 <Text fontWeight="medium" fontSize="lg">{currentLocation.name}</Text>
@@ -587,14 +587,14 @@ function Dashboard() {
           <>
             {/* Weather Card - Separate */}
             <Box
-              p={6}
+              p={5}
               bg="white"
               borderRadius="lg"
               boxShadow="sm"
               borderWidth="1px"
               borderColor="gray.200"
             >
-              <Stack gap={4}>
+              <Stack gap={3}>
                 <Heading size="md" textAlign="center">Weather</Heading>
                 
                 {isLoading && (
@@ -652,14 +652,14 @@ function Dashboard() {
 
             {/* Environmental Data Card */}
             <Box
-              p={6}
+              p={5}
               bg="white"
               borderRadius="lg"
               boxShadow="sm"
               borderWidth="1px"
               borderColor="gray.200"
             >
-              <Stack gap={4}>
+              <Stack gap={3}>
                 <Heading size="md" textAlign="center">Environmental Data</Heading>
                 
                 {isLoading && (
@@ -675,7 +675,7 @@ function Dashboard() {
                 )}
 
                 {environmentalData && (
-                  <Stack spacing={4}>
+                  <Stack spacing={3}>
                     <Box p={4} bg={getAQIColor(environmentalData.data.air_quality?.aqi || 0)} borderRadius="md">
                       <Text fontWeight="medium">Air Quality</Text>
                       {environmentalData.data.air_quality?.error ? (

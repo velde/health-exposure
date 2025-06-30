@@ -505,7 +505,6 @@ function Dashboard() {
                         <Badge colorScheme="red">{environmentalData.data.uv.error}</Badge>
                       ) : (
                         <Stack spacing={1}>
-                          <Text fontSize="sm" color="gray.600">Current</Text>
                           <Badge colorScheme={getUVColor(environmentalData.data.uv?.uv_index || 0).replace('.50', '')}>
                             {environmentalData.data.uv?.uv_index}
                           </Badge>
@@ -514,10 +513,6 @@ function Dashboard() {
                               Max: {environmentalData.data.uv?.max_uv} at {formatTime(environmentalData.data.uv?.max_uv_time || '')}
                             </Text>
                           )}
-                          {/* Debug info - remove this later */}
-                          <Text fontSize="xs" color="gray.400">
-                            Debug: max_uv={environmentalData.data.uv?.max_uv}, max_time={environmentalData.data.uv?.max_uv_time}
-                          </Text>
                         </Stack>
                       )}
                     </Box>

@@ -42,6 +42,9 @@ interface AirQuality {
   pm10?: number;
   o3?: number;
   co?: number;
+  no2?: number;
+  so2?: number;
+  nh3?: number;
   timestamp: number;
   error?: string;
 }
@@ -524,7 +527,10 @@ function Dashboard() {
   // Health risk explanation functions
   const getAirQualityExplanation = () => {
     return `Air Quality Index (AQI) Health Risk Assessment:
-    
+
+Based on OpenWeather's Air Pollution API scale
+
+AQI SCALE:
 Green (1): Good - Air quality is satisfactory, and air pollution poses little or no risk
 
 Yellow (2): Fair - Air quality is acceptable; however, some pollutants may be a concern for a small number of people
@@ -535,7 +541,34 @@ Red (4): Poor - Everyone may begin to experience health effects; members of sens
 
 Purple (5): Very Poor - Health warnings of emergency conditions; everyone is more likely to be affected
 
-Based on OpenWeather's Air Pollution API scale`;
+KEY POLLUTANTS:
+
+PM2.5 (Fine Particulate Matter):
+• Most harmful - particles ≤2.5 micrometers penetrate deep into lungs
+• Sources: vehicle emissions, industrial processes, wildfires
+• Health effects: respiratory and cardiovascular disease, premature death
+
+PM10 (Coarse Particulate Matter):
+• Particles ≤10 micrometers, respiratory irritant
+• Sources: dust, construction, vehicle wear
+• Health effects: respiratory irritation, aggravated asthma
+
+O₃ (Ozone):
+• Ground-level ozone, not the protective layer in atmosphere
+• Sources: chemical reactions between NOx and VOCs in sunlight
+• Health effects: respiratory problems, reduced lung function, chest pain
+
+NO₂ (Nitrogen Dioxide):
+• Traffic-related pollutant, especially in urban areas
+• Sources: vehicle emissions, power plants, industrial facilities
+• Health effects: respiratory inflammation, increased asthma attacks, especially in children
+
+CO (Carbon Monoxide):
+• Colorless, odorless gas from incomplete combustion
+• Sources: vehicle emissions, industrial processes, heating systems
+• Health effects: reduced oxygen delivery to organs, cardiovascular problems
+
+Data source: OpenWeather Air Pollution API`;
   };
 
   const getUVExplanation = () => {
@@ -930,12 +963,31 @@ Data source: Open-Meteo Air Quality API`;
                           <Badge colorScheme={getAQIColor(environmentalData.data.air_quality?.aqi || 0).replace('.50', '')}>
                             AQI: {environmentalData.data.air_quality?.aqi}
                           </Badge>
-                          <Text fontSize="sm" color="gray.600">
-                            PM2.5: {environmentalData.data.air_quality?.pm2_5?.toFixed(1) || 'N/A'} µg/m³
-                          </Text>
-                          <Text fontSize="sm" color="gray.600">
-                            PM10: {environmentalData.data.air_quality?.pm10?.toFixed(1) || 'N/A'} µg/m³
-                          </Text>
+                          {environmentalData.data.air_quality?.pm2_5 && (
+                            <Text fontSize="sm" color="gray.600">
+                              PM2.5: {environmentalData.data.air_quality.pm2_5.toFixed(1)} µg/m³
+                            </Text>
+                          )}
+                          {environmentalData.data.air_quality?.pm10 && (
+                            <Text fontSize="sm" color="gray.600">
+                              PM10: {environmentalData.data.air_quality.pm10.toFixed(1)} µg/m³
+                            </Text>
+                          )}
+                          {environmentalData.data.air_quality?.o3 && (
+                            <Text fontSize="sm" color="gray.600">
+                              O₃: {environmentalData.data.air_quality.o3.toFixed(1)} µg/m³
+                            </Text>
+                          )}
+                          {environmentalData.data.air_quality?.no2 && (
+                            <Text fontSize="sm" color="gray.600">
+                              NO₂: {environmentalData.data.air_quality.no2.toFixed(1)} µg/m³
+                            </Text>
+                          )}
+                          {environmentalData.data.air_quality?.co && (
+                            <Text fontSize="sm" color="gray.600">
+                              CO: {environmentalData.data.air_quality.co.toFixed(1)} µg/m³
+                            </Text>
+                          )}
                         </Stack>
                       )}
                     </Box>

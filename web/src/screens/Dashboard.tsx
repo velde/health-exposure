@@ -440,6 +440,29 @@ function Dashboard() {
     return 'green.50';
   };
 
+  const getConditionsStatus = (humidity: number, pressure: number) => {
+    const humidityColor = getHumidityColor(humidity);
+    const pressureColor = getPressureColor(pressure);
+    
+    // Check pressure first (more critical)
+    if (pressureColor === 'orange.50') {
+      return pressure < 980 ? 'Low Pressure' : 'High Pressure';
+    }
+    if (pressureColor === 'yellow.50') {
+      return pressure < 1013 ? 'Low Pressure' : 'High Pressure';
+    }
+    
+    // Then check humidity
+    if (humidityColor === 'orange.50') {
+      return humidity < 30 ? 'Dry' : 'Humid';
+    }
+    if (humidityColor === 'yellow.50') {
+      return humidity < 50 ? 'Dry' : 'Humid';
+    }
+    
+    return 'Normal';
+  };
+
   const formatTimestamp = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleString();
   };
@@ -591,25 +614,36 @@ function Dashboard() {
                     {environmentalData.data.weather?.error ? (
                       <Badge colorScheme="red">{environmentalData.data.weather.error}</Badge>
                     ) : (
-                      <Stack spacing={1}>
-                        <Text fontSize="sm" color="gray.600">
-                          {Math.round(environmentalData.data.weather?.temperature?.current || 0)}°C (feels like {Math.round(environmentalData.data.weather?.temperature?.feels_like || 0)}°C)
-                        </Text>
-                        <Text fontSize="sm" color="gray.600">
-                          min {Math.round(environmentalData.data.weather?.temperature?.min || 0)}°C, max {Math.round(environmentalData.data.weather?.temperature?.max || 0)}°C
-                        </Text>
-                        <Text fontSize="sm" color="gray.600">
-                          {environmentalData.data.weather?.weather?.description}
-                        </Text>
-                        <Text fontSize="sm" color="gray.600">
-                          Wind: {(environmentalData.data.weather?.wind?.speed || 0).toFixed(1)} m/s
-                        </Text>
-                        {environmentalData.data.weather?.visibility && (
+                      <Flex justify="space-between" align="center">
+                        <Stack spacing={1} flex={1}>
                           <Text fontSize="sm" color="gray.600">
-                            Visibility: {Math.round((environmentalData.data.weather.visibility / 1000))} km
+                            {Math.round(environmentalData.data.weather?.temperature?.current || 0)}°C (feels like {Math.round(environmentalData.data.weather?.temperature?.feels_like || 0)}°C)
                           </Text>
+                          <Text fontSize="sm" color="gray.600">
+                            Low {Math.round(environmentalData.data.weather?.temperature?.min || 0)}°C, High {Math.round(environmentalData.data.weather?.temperature?.max || 0)}°C
+                          </Text>
+                          <Text fontSize="sm" color="gray.600">
+                            {environmentalData.data.weather?.weather?.description?.charAt(0).toUpperCase() + environmentalData.data.weather?.weather?.description?.slice(1)}
+                          </Text>
+                          <Text fontSize="sm" color="gray.600">
+                            Wind: {(environmentalData.data.weather?.wind?.speed || 0).toFixed(1)} m/s
+                          </Text>
+                          {environmentalData.data.weather?.visibility && (
+                            <Text fontSize="sm" color="gray.600">
+                              Visibility: {Math.round((environmentalData.data.weather.visibility / 1000))} km
+                            </Text>
+                          )}
+                        </Stack>
+                        {environmentalData.data.weather?.weather?.icon && (
+                          <Box>
+                            <img 
+                              src={`https://openweathermap.org/img/wn/${environmentalData.data.weather.weather.icon}@2x.png`}
+                              alt={environmentalData.data.weather.weather.description}
+                              style={{ width: '80px', height: '80px' }}
+                            />
+                          </Box>
                         )}
-                      </Stack>
+                      </Flex>
                     )}
                   </Box>
                 )}
@@ -699,7 +733,12 @@ function Dashboard() {
                         <Badge colorScheme="red">{environmentalData.data.humidity.error}</Badge>
                       ) : (
                         <Stack spacing={1}>
-                          <Badge colorScheme={getHumidityColor(environmentalData.data.humidity?.humidity || 0)}>Humidity: {environmentalData.data.humidity?.humidity}%</Badge>
+                          <Badge colorScheme={getConditionsColor(environmentalData.data.humidity?.humidity || 0, environmentalData.data.weather?.pressure || 0).replace('.50', '')}>
+                            {getConditionsStatus(environmentalData.data.humidity?.humidity || 0, environmentalData.data.weather?.pressure || 0)}
+                          </Badge>
+                          <Text fontSize="sm" color="gray.600">
+                            Humidity: {environmentalData.data.humidity?.humidity}%
+                          </Text>
                           {environmentalData.data.weather?.pressure && (
                             <Text fontSize="sm" color="gray.600">
                               Pressure: {environmentalData.data.weather.pressure} hPa

@@ -291,8 +291,7 @@ function Dashboard() {
         const response = await apiClient.get('/cells', {
           params: {
             lat: currentLocation.lat,
-            lon: currentLocation.lon,
-            force_refresh: 'true'
+            lon: currentLocation.lon
           }
         });
         console.log('API Response:', response.data);
@@ -540,9 +539,6 @@ function Dashboard() {
                       ) : (
                         <Stack spacing={1}>
                           <Badge colorScheme="blue">{environmentalData.data.humidity?.humidity}%</Badge>
-                          <Text fontSize="sm" color="gray.500">
-                            Updated: {formatTimestamp(environmentalData.data.humidity?.timestamp || 0)}
-                          </Text>
                         </Stack>
                       )}
                     </Box>

@@ -152,55 +152,59 @@ def lambda_handler(event, context):
         
         # Only use cached data if not forcing refresh and data is not stale
         if not force_refresh and body.get("last_updated") and not is_stale(body["last_updated"], TTL_SECONDS):
-            print(f"[INFO] Cache HIT for h3_cell: {h3_cell}")
-            
-            # Check if news needs refresh based on its own TTL
-            news = body.get('news', {})
-            fetched_at = news.get('fetched_at')
-            refresh_news = False  # Default to using cached news
-            
-            if fetched_at:
-                try:
-                    dt = datetime.fromisoformat(fetched_at)
-                    refresh_news = dt.timestamp() < time.time() - NEWS_TTL_SECONDS
-                except Exception:
-                    pass
-            
-            if refresh_news:
-                print(f"[INFO] News cache expired, refreshing news for h3_cell: {h3_cell}")
-                location = body.get('location') or 'Unknown'
-                try:
-                    news = fetch_local_health_news(lat, lon, location)
-                    body['news'] = news
-                    s3.put_object(
-                        Bucket=BUCKET_NAME,
-                        Key=key,
-                        Body=json.dumps(body),
-                        ContentType="application/json"
-                    )
-                except Exception as e:
-                    print(f"[ERROR] News fetch failed: {e}")
-                    news = {"source": "openai", "error": str(e), "articles": []}
-                    body['news'] = news
+            # Check if cached data has the new version with max UV support
+            if body.get("version") != "2.0":
+                print(f"[INFO] Cache MISS - Old version detected for h3_cell: {h3_cell}")
             else:
-                print(f"[INFO] Using cached news for h3_cell: {h3_cell}")
-            
-            # Add rate limit info to response
-            body['rate_limit'] = {
-                'remaining': remaining,
-                'reset_time': reset_time
-            }
-            
-            # Add cache status to response
-            body['cache_status'] = {
-                'hit': True,
-                'source': 'S3',
-                'last_updated': body.get('last_updated'),
-                'ttl_seconds': TTL_SECONDS,
-                'force_refresh': force_refresh
-            }
-            
-            return success_response(body, origin)
+                print(f"[INFO] Cache HIT for h3_cell: {h3_cell}")
+                
+                # Check if news needs refresh based on its own TTL
+                news = body.get('news', {})
+                fetched_at = news.get('fetched_at')
+                refresh_news = False  # Default to using cached news
+                
+                if fetched_at:
+                    try:
+                        dt = datetime.fromisoformat(fetched_at)
+                        refresh_news = dt.timestamp() < time.time() - NEWS_TTL_SECONDS
+                    except Exception:
+                        pass
+                
+                if refresh_news:
+                    print(f"[INFO] News cache expired, refreshing news for h3_cell: {h3_cell}")
+                    location = body.get('location') or 'Unknown'
+                    try:
+                        news = fetch_local_health_news(lat, lon, location)
+                        body['news'] = news
+                        s3.put_object(
+                            Bucket=BUCKET_NAME,
+                            Key=key,
+                            Body=json.dumps(body),
+                            ContentType="application/json"
+                        )
+                    except Exception as e:
+                        print(f"[ERROR] News fetch failed: {e}")
+                        news = {"source": "openai", "error": str(e), "articles": []}
+                        body['news'] = news
+                else:
+                    print(f"[INFO] Using cached news for h3_cell: {h3_cell}")
+                
+                # Add rate limit info to response
+                body['rate_limit'] = {
+                    'remaining': remaining,
+                    'reset_time': reset_time
+                }
+                
+                # Add cache status to response
+                body['cache_status'] = {
+                    'hit': True,
+                    'source': 'S3',
+                    'last_updated': body.get('last_updated'),
+                    'ttl_seconds': TTL_SECONDS,
+                    'force_refresh': force_refresh
+                }
+                
+                return success_response(body, origin)
         else:
             if force_refresh:
                 print(f"[INFO] Cache MISS - Force refresh requested for h3_cell: {h3_cell}")
@@ -287,6 +291,7 @@ def lambda_handler(event, context):
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "last_updated": int(time.time()),
             "location": location,
+            "version": "2.0",  # Add version to invalidate old cache entries
             "data": {
                 "air_quality": air_quality,
                 "tap_water": tap_water,

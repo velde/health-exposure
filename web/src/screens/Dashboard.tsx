@@ -635,7 +635,7 @@ function Dashboard() {
                           )}
                         </Stack>
                         {environmentalData.data.weather?.weather?.icon && (
-                          <Box>
+                          <Box bg="white" p={2} borderRadius="md" boxShadow="sm">
                             <img 
                               src={`https://openweathermap.org/img/wn/${environmentalData.data.weather.weather.icon}@2x.png`}
                               alt={environmentalData.data.weather.weather.description}

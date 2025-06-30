@@ -100,7 +100,6 @@ function Dashboard() {
     location.state?.selectedLocation || null
   );
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
-  const [isPageRefresh, setIsPageRefresh] = useState(false);
 
   // Test environment variables
   console.log('API URL:', import.meta.env.VITE_API_URL);
@@ -125,10 +124,30 @@ function Dashboard() {
       if (response.data && response.data.display_name) {
         return response.data.display_name;
       }
-      return 'Current Location';
+      
+      // Try to construct a name from address components if display_name is not available
+      if (response.data && response.data.address) {
+        const address = response.data.address;
+        const parts = [];
+        
+        if (address.city) parts.push(address.city);
+        else if (address.town) parts.push(address.town);
+        else if (address.village) parts.push(address.village);
+        
+        if (address.state) parts.push(address.state);
+        if (address.country) parts.push(address.country);
+        
+        if (parts.length > 0) {
+          return parts.join(', ');
+        }
+      }
+      
+      // Fallback to coordinates if no meaningful name can be constructed
+      return `Location (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
     } catch (error) {
       console.error('Reverse geocoding failed:', error);
-      return 'Current Location';
+      // Fallback to coordinates if reverse geocoding fails
+      return `Location (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
     }
   };
 
@@ -241,43 +260,13 @@ function Dashboard() {
 
   // Handle browser refresh to update current location
   useEffect(() => {
-    console.log('Refresh detection useEffect running');
-    console.log('Current location state:', location.state?.selectedLocation);
-    console.log('Performance navigation type:', performance.navigation.type);
-    
-    // Simple refresh detection - check if this is a page reload
+    // Check if this is a page reload and we don't have a selected location
     const isPageReload = performance.navigation.type === 1;
     
     if (isPageReload && !location.state?.selectedLocation) {
       console.log('Page reload detected, refreshing location');
       refreshCurrentLocation();
     }
-
-    // Handle beforeunload to mark refresh
-    const handleBeforeUnload = () => {
-      console.log('Beforeunload event - marking refresh');
-      sessionStorage.setItem('wasRefreshed', 'true');
-    };
-
-    // Handle pageshow event for better refresh detection
-    const handlePageShow = (event: PageTransitionEvent) => {
-      console.log('Pageshow event:', event.persisted);
-      const wasRefreshed = sessionStorage.getItem('wasRefreshed') === 'true';
-      console.log('Was refreshed flag:', wasRefreshed);
-      if (wasRefreshed && !location.state?.selectedLocation) {
-        console.log('Pageshow refresh detected, updating location');
-        sessionStorage.removeItem('wasRefreshed');
-        refreshCurrentLocation();
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    window.addEventListener('pageshow', handlePageShow);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('pageshow', handlePageShow);
-    };
   }, [location.state?.selectedLocation]);
 
   const { data: environmentalData, isLoading, error } = useQuery({
@@ -394,7 +383,7 @@ function Dashboard() {
                 color="gray.500"
               >
                 <Spinner size="sm" mr={2} />
-                {isPageRefresh ? 'Refreshing location...' : 'Detecting your location...'}
+                Detecting your location...
               </Box>
             ) : (
               <Box

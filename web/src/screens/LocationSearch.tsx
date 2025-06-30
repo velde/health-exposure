@@ -84,12 +84,59 @@ async function getCurrentLocation(): Promise<Location | null> {
     }
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        resolve({
-          name: 'Current Location',
-          lat: position.coords.latitude,
-          lon: position.coords.longitude
-        });
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        
+        // Get place name from coordinates using reverse geocoding
+        try {
+          const response = await axios.get('https://nominatim.openstreetmap.org/reverse', {
+            params: {
+              lat: lat,
+              lon: lon,
+              format: 'json',
+              'accept-language': 'en',
+              addressdetails: 1
+            },
+            headers: {
+              'User-Agent': 'HealthExposure/1.0'
+            }
+          });
+          
+          let placeName = 'Current Location';
+          if (response.data && response.data.display_name) {
+            placeName = response.data.display_name;
+          } else if (response.data && response.data.address) {
+            // Try to construct a name from address components if display_name is not available
+            const address = response.data.address;
+            const parts = [];
+            
+            if (address.city) parts.push(address.city);
+            else if (address.town) parts.push(address.town);
+            else if (address.village) parts.push(address.village);
+            
+            if (address.state) parts.push(address.state);
+            if (address.country) parts.push(address.country);
+            
+            if (parts.length > 0) {
+              placeName = parts.join(', ');
+            }
+          }
+          
+          resolve({
+            name: placeName,
+            lat: lat,
+            lon: lon
+          });
+        } catch (error) {
+          console.error('Reverse geocoding failed:', error);
+          // Fallback to coordinates if reverse geocoding fails
+          resolve({
+            name: `Location (${lat.toFixed(4)}, ${lon.toFixed(4)})`,
+            lat: lat,
+            lon: lon
+          });
+        }
       },
       (error) => {
         let errorMessage = 'Unable to get your location';

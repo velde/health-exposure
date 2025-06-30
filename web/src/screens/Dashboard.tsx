@@ -928,7 +928,7 @@ Data source: Open-Meteo Air Quality API`;
                       ) : (
                         <Stack spacing={1}>
                           <Badge colorScheme={getAQIColor(environmentalData.data.air_quality?.aqi || 0).replace('.50', '')}>
-                            {environmentalData.data.air_quality?.aqi || 'N/A'}
+                            AQI: {environmentalData.data.air_quality?.aqi}
                           </Badge>
                           <Text fontSize="sm" color="gray.600">
                             PM2.5: {environmentalData.data.air_quality?.pm2_5?.toFixed(1) || 'N/A'} µg/m³
@@ -956,14 +956,21 @@ Data source: Open-Meteo Air Quality API`;
                       ) : (
                         <Stack spacing={1}>
                           <Badge colorScheme={getUVColor(environmentalData.data.uv?.uv_index || 0).replace('.50', '')}>
-                            {environmentalData.data.uv?.uv_index?.toFixed(1) || 'N/A'}
-                          </Badge>
-                          <Text fontSize="sm" color="gray.600">
                             Current: {environmentalData.data.uv?.uv_index?.toFixed(1) || 'N/A'}
-                          </Text>
+                          </Badge>
                           {environmentalData.data.uv?.max_uv && (
                             <Text fontSize="sm" color="gray.600">
                               Max: {environmentalData.data.uv.max_uv.toFixed(1)} at {formatTime(environmentalData.data.uv.max_uv_time || '')}
+                            </Text>
+                          )}
+                          {environmentalData.data.weather?.sunrise && (
+                            <Text fontSize="sm" color="gray.600">
+                              Sunrise: {formatTime(new Date(environmentalData.data.weather.sunrise * 1000).toISOString())}
+                            </Text>
+                          )}
+                          {environmentalData.data.weather?.sunset && (
+                            <Text fontSize="sm" color="gray.600">
+                              Sunset: {formatTime(new Date(environmentalData.data.weather.sunset * 1000).toISOString())}
                             </Text>
                           )}
                         </Stack>

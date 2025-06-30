@@ -295,6 +295,7 @@ function Dashboard() {
           }
         });
         console.log('API Response:', response.data);
+        console.log('UV Data from API:', response.data?.data?.uv);
         return response.data as EnvironmentalData;
       } catch (error) {
         if (axios.isAxiosError(error)) {

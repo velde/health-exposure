@@ -104,22 +104,35 @@ async function getCurrentLocation(): Promise<Location | null> {
           });
           
           let placeName = 'Current Location';
-          if (response.data && response.data.display_name) {
-            placeName = response.data.display_name;
-          } else if (response.data && response.data.address) {
-            // Try to construct a name from address components if display_name is not available
+          
+          // Create a concise location name from address components
+          if (response.data && response.data.address) {
             const address = response.data.address;
             const parts = [];
             
+            // Primary: City/Town/Village/Suburb
             if (address.city) parts.push(address.city);
             else if (address.town) parts.push(address.town);
             else if (address.village) parts.push(address.village);
+            else if (address.suburb) parts.push(address.suburb);
             
-            if (address.state) parts.push(address.state);
-            if (address.country) parts.push(address.country);
+            // Secondary: State/Province (only if different from city)
+            if (address.state && address.state !== parts[0]) {
+              parts.push(address.state);
+            }
             
-            if (parts.length > 0) {
-              placeName = parts.join(', ');
+            // Tertiary: Country (only if not obvious from state)
+            if (address.country && address.country !== 'United States') {
+              parts.push(address.country);
+            }
+            
+            const result = parts.join(', ');
+            
+            // Limit length for UI - if too long, use just city and state
+            if (result.length > 60) {
+              placeName = parts.slice(0, 2).join(', ');
+            } else {
+              placeName = result;
             }
           }
           

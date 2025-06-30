@@ -121,28 +121,38 @@ function Dashboard() {
         }
       });
       
-      if (response.data && response.data.display_name) {
-        return response.data.display_name;
-      }
-      
-      // Try to construct a name from address components if display_name is not available
+      // Create a concise location name from address components
       if (response.data && response.data.address) {
         const address = response.data.address;
         const parts = [];
         
+        // Primary: City/Town/Village/Suburb
         if (address.city) parts.push(address.city);
         else if (address.town) parts.push(address.town);
         else if (address.village) parts.push(address.village);
+        else if (address.suburb) parts.push(address.suburb);
         
-        if (address.state) parts.push(address.state);
-        if (address.country) parts.push(address.country);
-        
-        if (parts.length > 0) {
-          return parts.join(', ');
+        // Secondary: State/Province (only if different from city)
+        if (address.state && address.state !== parts[0]) {
+          parts.push(address.state);
         }
+        
+        // Tertiary: Country (only if not obvious from state)
+        if (address.country && address.country !== 'United States') {
+          parts.push(address.country);
+        }
+        
+        const result = parts.join(', ');
+        
+        // Limit length for UI - if too long, use just city and state
+        if (result.length > 60) {
+          return parts.slice(0, 2).join(', ');
+        }
+        
+        return result;
       }
       
-      // Fallback to coordinates if no meaningful name can be constructed
+      // Fallback to coordinates if no address components available
       return `Location (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
     } catch (error) {
       console.error('Reverse geocoding failed:', error);

@@ -24,6 +24,7 @@ NEWS_TTL_SECONDS = 43200  # 12 hours for news
 # CORS configuration
 ALLOWED_ORIGINS = [
     "https://health-exposure.app",  # Production frontend
+    "https://healthexposure.app",   # New domain
     "exp://localhost:19000",        # Local development
     "exp://192.168.1.*:19000",     # Local network development
     "https://web-iota-one-12.vercel.app"  # Vercel deployment

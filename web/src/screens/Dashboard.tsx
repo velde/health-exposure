@@ -42,6 +42,8 @@ interface UVIndex {
   source: string;
   uv_index: number;
   timestamp: string;
+  max_uv?: number;
+  max_uv_time?: string;
   error?: string;
 }
 
@@ -332,6 +334,20 @@ function Dashboard() {
     return new Date(timestamp * 1000).toLocaleString();
   };
 
+  const formatTime = (timeString: string) => {
+    if (!timeString) return '';
+    try {
+      const date = new Date(timeString);
+      return date.toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit',
+        hour12: true 
+      });
+    } catch (error) {
+      return timeString;
+    }
+  };
+
   return (
     <Container maxW="container.sm" py={8}>
       <Stack gap={6}>
@@ -488,10 +504,27 @@ function Dashboard() {
                       {environmentalData.data.uv?.error ? (
                         <Badge colorScheme="red">{environmentalData.data.uv.error}</Badge>
                       ) : (
-                        <Stack spacing={1}>
-                          <Badge colorScheme={getUVColor(environmentalData.data.uv?.uv_index || 0).replace('.50', '')}>
-                            {environmentalData.data.uv?.uv_index}
-                          </Badge>
+                        <Stack spacing={2}>
+                          <Stack spacing={1}>
+                            <Text fontSize="sm" color="gray.600">Current</Text>
+                            <Badge colorScheme={getUVColor(environmentalData.data.uv?.uv_index || 0).replace('.50', '')} fontSize="md">
+                              {environmentalData.data.uv?.uv_index}
+                            </Badge>
+                          </Stack>
+                          
+                          {environmentalData.data.uv?.max_uv && (
+                            <Stack spacing={1}>
+                              <Text fontSize="sm" color="gray.600">Max Today</Text>
+                              <Badge colorScheme={getUVColor(environmentalData.data.uv?.max_uv || 0).replace('.50', '')} variant="outline">
+                                {environmentalData.data.uv?.max_uv}
+                              </Badge>
+                              {environmentalData.data.uv?.max_uv_time && (
+                                <Text fontSize="xs" color="gray.500">
+                                  at {formatTime(environmentalData.data.uv.max_uv_time)}
+                                </Text>
+                              )}
+                            </Stack>
+                          )}
                         </Stack>
                       )}
                     </Box>

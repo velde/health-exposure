@@ -61,6 +61,33 @@ interface Humidity {
   error?: string;
 }
 
+interface Weather {
+  source: string;
+  temperature: {
+    current: number;
+    feels_like: number;
+    min: number;
+    max: number;
+  };
+  humidity: number;
+  pressure: number;
+  wind: {
+    speed: number;
+    direction: number;
+  };
+  weather: {
+    description: string;
+    icon: string;
+    main: string;
+  };
+  clouds: number;
+  visibility: number;
+  sunrise: number;
+  sunset: number;
+  timestamp: number;
+  error?: string;
+}
+
 interface Pollen {
   source: string;
   alder: number;
@@ -80,6 +107,7 @@ interface EnvironmentalData {
     air_quality: AirQuality;
     tap_water: TapWater;
     uv: UVIndex;
+    weather: Weather;
     humidity: Humidity;
     pollen: Pollen;
   };
@@ -340,9 +368,9 @@ function Dashboard() {
     try {
       const date = new Date(timeString);
       return date.toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
+        hour: '2-digit', 
         minute: '2-digit',
-        hour12: true 
+        hour12: false 
       });
     } catch (error) {
       return timeString;
@@ -514,6 +542,45 @@ function Dashboard() {
                               Max: {environmentalData.data.uv?.max_uv} at {formatTime(environmentalData.data.uv?.max_uv_time || '')}
                             </Text>
                           )}
+                          {environmentalData.data.weather?.sunrise && (
+                            <Text fontSize="sm" color="gray.600">
+                              Sunrise: {formatTime(new Date(environmentalData.data.weather.sunrise * 1000).toISOString())}
+                            </Text>
+                          )}
+                          {environmentalData.data.weather?.sunset && (
+                            <Text fontSize="sm" color="gray.600">
+                              Sunset: {formatTime(new Date(environmentalData.data.weather.sunset * 1000).toISOString())}
+                            </Text>
+                          )}
+                        </Stack>
+                      )}
+                    </Box>
+
+                    <Box p={4} bg="blue.50" borderRadius="md">
+                      <Text fontWeight="medium">Weather</Text>
+                      {environmentalData.data.weather?.error ? (
+                        <Badge colorScheme="red">{environmentalData.data.weather.error}</Badge>
+                      ) : (
+                        <Stack spacing={1}>
+                          <Badge colorScheme="blue">
+                            {environmentalData.data.weather?.temperature?.current}°C (feels like {environmentalData.data.weather?.temperature?.feels_like}°C)
+                          </Badge>
+                          <Text fontSize="sm" color="gray.600">
+                            {environmentalData.data.weather?.temperature?.min}°C / {environmentalData.data.weather?.temperature?.max}°C
+                          </Text>
+                          <Text fontSize="sm" color="gray.600">
+                            {environmentalData.data.weather?.weather?.description}
+                          </Text>
+                          {environmentalData.data.weather?.wind?.speed && (
+                            <Text fontSize="sm">
+                              Wind: {environmentalData.data.weather.wind.speed} m/s
+                            </Text>
+                          )}
+                          {environmentalData.data.weather?.visibility && (
+                            <Text fontSize="sm">
+                              Visibility: {(environmentalData.data.weather.visibility / 1000).toFixed(1)} km
+                            </Text>
+                          )}
                         </Stack>
                       )}
                     </Box>
@@ -533,12 +600,17 @@ function Dashboard() {
                     </Box>
 
                     <Box p={4} bg="gray.50" borderRadius="md">
-                      <Text fontWeight="medium">Humidity</Text>
+                      <Text fontWeight="medium">Conditions</Text>
                       {environmentalData.data.humidity?.error ? (
                         <Badge colorScheme="red">{environmentalData.data.humidity.error}</Badge>
                       ) : (
                         <Stack spacing={1}>
                           <Badge colorScheme="blue">{environmentalData.data.humidity?.humidity}%</Badge>
+                          {environmentalData.data.weather?.pressure && (
+                            <Text fontSize="sm">
+                              Pressure: {environmentalData.data.weather.pressure} hPa
+                            </Text>
+                          )}
                         </Stack>
                       )}
                     </Box>

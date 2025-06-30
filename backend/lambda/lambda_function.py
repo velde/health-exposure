@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from adapters.openweather import get_air_quality
 from adapters.tapwater import is_tap_water_safe
 from adapters.uv import get_uv_index
-from adapters.humidity import get_humidity
+from adapters.weather import get_weather
 from adapters.pollen import get_pollen
 from adapters.opencage import reverse_geocode
 from adapters.newsdata import fetch_local_health_news
@@ -20,6 +20,18 @@ s3 = boto3.client("s3")
 BUCKET_NAME = os.environ.get("BUCKET_NAME", "health-exposure-data")
 BASE_TTL_SECONDS = 3600  # default 1 hour for free tier
 NEWS_TTL_SECONDS = 43200  # 12 hours for news
+
+# Version registry - increment when adapters change
+ADAPTER_VERSIONS = {
+    "air_quality": 1,
+    "tap_water": 1, 
+    "uv": 2,  # Updated to include max UV
+    "weather": 1,  # New weather adapter
+    "pollen": 1
+}
+
+# Current overall data version - increment when any adapter changes
+CURRENT_DATA_VERSION = 2
 
 # CORS configuration
 ALLOWED_ORIGINS = [
@@ -152,9 +164,10 @@ def lambda_handler(event, context):
         
         # Only use cached data if not forcing refresh and data is not stale
         if not force_refresh and body.get("last_updated") and not is_stale(body["last_updated"], TTL_SECONDS):
-            # Check if cached data has the new version with max UV support
-            if body.get("version") != "2.0":
-                print(f"[INFO] Cache MISS - Old version detected for h3_cell: {h3_cell}")
+            # Check if cached data has the current version
+            cached_version = body.get("version", 0)
+            if cached_version < CURRENT_DATA_VERSION:
+                print(f"[INFO] Cache MISS - Old version detected for h3_cell: {h3_cell} (cached: {cached_version}, current: {CURRENT_DATA_VERSION})")
             else:
                 print(f"[INFO] Cache HIT for h3_cell: {h3_cell}")
                 
@@ -255,7 +268,7 @@ def lambda_handler(event, context):
             air_quality_future = executor.submit(fetch_with_timeout, get_air_quality, request_context)
             tap_water_future = executor.submit(fetch_with_timeout, is_tap_water_safe, request_context)
             uv_future = executor.submit(fetch_with_timeout, get_uv_index, request_context)
-            humidity_future = executor.submit(fetch_with_timeout, get_humidity, request_context)
+            humidity_future = executor.submit(fetch_with_timeout, get_weather, request_context)
             pollen_future = executor.submit(fetch_with_timeout, get_pollen, request_context)
             
             # TEMPORARILY COMMENTED OUT: News API call causing timeouts
@@ -269,7 +282,7 @@ def lambda_handler(event, context):
                 air_quality = air_quality_future.result(timeout=10)
                 tap_water = tap_water_future.result(timeout=10)
                 uv = uv_future.result(timeout=10)
-                humidity = humidity_future.result(timeout=10)
+                weather = humidity_future.result(timeout=10)
                 pollen = pollen_future.result(timeout=10)
                 # news = news_future.result(timeout=10)
                 news = {"source": "disabled", "articles": [], "note": "News temporarily disabled for testing"}
@@ -281,21 +294,32 @@ def lambda_handler(event, context):
                 air_quality = air_quality_future.result(timeout=1) if not air_quality_future.done() else {"error": "Timeout"}
                 tap_water = tap_water_future.result(timeout=1) if not tap_water_future.done() else {"error": "Timeout"}
                 uv = uv_future.result(timeout=1) if not uv_future.done() else {"error": "Timeout"}
-                humidity = humidity_future.result(timeout=1) if not humidity_future.done() else {"error": "Timeout"}
+                weather = humidity_future.result(timeout=1) if not humidity_future.done() else {"error": "Timeout"}
                 pollen = pollen_future.result(timeout=1) if not pollen_future.done() else {"error": "Timeout"}
                 # news = news_future.result(timeout=1) if not news_future.done() else {"error": "Timeout", "articles": []}
                 news = {"source": "disabled", "articles": [], "note": "News temporarily disabled for testing"}
+
+        # Extract humidity from weather data for backward compatibility
+        humidity = None
+        if weather and not weather.get("error"):
+            humidity = {
+                "source": weather.get("source"),
+                "humidity": weather.get("humidity"),
+                "timestamp": weather.get("timestamp")
+            }
 
         enriched = {
             "h3_cell": h3_cell,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "last_updated": int(time.time()),
             "location": location,
-            "version": "2.0",  # Add version to invalidate old cache entries
+            "version": CURRENT_DATA_VERSION,
+            "adapter_versions": ADAPTER_VERSIONS,
             "data": {
                 "air_quality": air_quality,
                 "tap_water": tap_water,
                 "uv": uv,
+                "weather": weather,
                 "humidity": humidity,
                 "pollen": pollen
             },

@@ -505,166 +505,156 @@ function Dashboard() {
 
               {environmentalData && (
                 <Stack spacing={6}>
-                  <Grid templateColumns="repeat(2, 1fr)" gap={4}>
-                    <Box p={4} bg={getAQIColor(environmentalData.data.air_quality?.aqi || 0)} borderRadius="md">
-                      <Text fontWeight="medium">Air Quality</Text>
-                      {environmentalData.data.air_quality?.error ? (
-                        <Badge colorScheme="red">{environmentalData.data.air_quality.error}</Badge>
-                      ) : (
-                        <Stack spacing={1}>
-                          <Badge colorScheme={getAQIColor(environmentalData.data.air_quality?.aqi || 0).replace('.50', '')}>
-                            AQI: {environmentalData.data.air_quality?.aqi}
-                          </Badge>
-                          {environmentalData.data.air_quality?.pm2_5 && (
-                            <Text fontSize="sm">PM2.5: {environmentalData.data.air_quality.pm2_5} µg/m³</Text>
-                          )}
-                          {environmentalData.data.air_quality?.pm10 && (
-                            <Text fontSize="sm">PM10: {environmentalData.data.air_quality.pm10} µg/m³</Text>
-                          )}
-                          {environmentalData.data.air_quality?.o3 && (
-                            <Text fontSize="sm">O3: {environmentalData.data.air_quality.o3} µg/m³</Text>
-                          )}
-                        </Stack>
-                      )}
-                    </Box>
-
-                    <Box p={4} bg={getUVColor(environmentalData.data.uv?.uv_index || 0)} borderRadius="md">
-                      <Text fontWeight="medium">UV Index</Text>
-                      {environmentalData.data.uv?.error ? (
-                        <Badge colorScheme="red">{environmentalData.data.uv.error}</Badge>
-                      ) : (
-                        <Stack spacing={1}>
-                          <Badge colorScheme={getUVColor(environmentalData.data.uv?.uv_index || 0).replace('.50', '')}>
-                            {environmentalData.data.uv?.uv_index}
-                          </Badge>
-                          {environmentalData.data.uv?.max_uv && (
-                            <Text fontSize="sm" color="gray.600">
-                              Max: {environmentalData.data.uv?.max_uv} at {formatTime(environmentalData.data.uv?.max_uv_time || '')}
-                            </Text>
-                          )}
-                          {environmentalData.data.weather?.sunrise && (
-                            <Text fontSize="sm" color="gray.600">
-                              Sunrise: {formatTime(new Date(environmentalData.data.weather.sunrise * 1000).toISOString())}
-                            </Text>
-                          )}
-                          {environmentalData.data.weather?.sunset && (
-                            <Text fontSize="sm" color="gray.600">
-                              Sunset: {formatTime(new Date(environmentalData.data.weather.sunset * 1000).toISOString())}
-                            </Text>
-                          )}
-                        </Stack>
-                      )}
-                    </Box>
-
-                    <Box p={4} bg="blue.50" borderRadius="md">
+                  <Box p={4} bg="white" borderRadius="md" shadow="sm">
+                    <Text fontSize="lg" fontWeight="bold" mb={4}>Environmental Data</Text>
+                    
+                    {/* Weather Card - Full Width */}
+                    <Box p={4} bg="gray.50" borderRadius="md" mb={4}>
                       <Text fontWeight="medium">Weather</Text>
                       {environmentalData.data.weather?.error ? (
                         <Badge colorScheme="red">{environmentalData.data.weather.error}</Badge>
                       ) : (
                         <Stack spacing={1}>
                           <Badge colorScheme="blue">
-                            {environmentalData.data.weather?.temperature?.current}°C (feels like {environmentalData.data.weather?.temperature?.feels_like}°C)
+                            {Math.round(environmentalData.data.weather?.temperature?.current || 0)}°C (feels like {Math.round(environmentalData.data.weather?.temperature?.feels_like || 0)}°C)
                           </Badge>
                           <Text fontSize="sm" color="gray.600">
-                            {environmentalData.data.weather?.temperature?.min}°C / {environmentalData.data.weather?.temperature?.max}°C
+                            min {Math.round(environmentalData.data.weather?.temperature?.min || 0)}°C, max {Math.round(environmentalData.data.weather?.temperature?.max || 0)}°C
                           </Text>
                           <Text fontSize="sm" color="gray.600">
                             {environmentalData.data.weather?.weather?.description}
                           </Text>
-                          {environmentalData.data.weather?.wind?.speed && (
-                            <Text fontSize="sm">
-                              Wind: {environmentalData.data.weather.wind.speed} m/s
-                            </Text>
-                          )}
+                          <Text fontSize="sm" color="gray.600">
+                            Wind: {(environmentalData.data.weather?.wind?.speed || 0).toFixed(1)} m/s
+                          </Text>
                           {environmentalData.data.weather?.visibility && (
-                            <Text fontSize="sm">
-                              Visibility: {(environmentalData.data.weather.visibility / 1000).toFixed(1)} km
+                            <Text fontSize="sm" color="gray.600">
+                              Visibility: {Math.round(environmentalData.data.weather.visibility)} km
                             </Text>
                           )}
                         </Stack>
                       )}
                     </Box>
 
-                    <Box p={4} bg={getTapWaterColor(environmentalData.data.tap_water?.is_safe || false)} borderRadius="md">
-                      <Text fontWeight="medium">Tap Water</Text>
-                      {environmentalData.data.tap_water?.error ? (
-                        <Badge colorScheme="red">{environmentalData.data.tap_water.error}</Badge>
-                      ) : (
-                        <Stack spacing={1}>
-                          <Badge colorScheme={environmentalData.data.tap_water?.is_safe ? 'green' : 'red'}>
-                            {environmentalData.data.tap_water?.is_safe ? 'Safe' : 'Not Safe'}
-                          </Badge>
-                          <Text fontSize="sm">Country: {environmentalData.data.tap_water?.country}</Text>
-                        </Stack>
-                      )}
-                    </Box>
+                    <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+                      <Box p={4} bg={getAQIColor(environmentalData.data.air_quality?.aqi || 0)} borderRadius="md">
+                        <Text fontWeight="medium">Air Quality</Text>
+                        {environmentalData.data.air_quality?.error ? (
+                          <Badge colorScheme="red">{environmentalData.data.air_quality.error}</Badge>
+                        ) : (
+                          <Stack spacing={1}>
+                            <Badge colorScheme={getAQIColor(environmentalData.data.air_quality?.aqi || 0).replace('.50', '')}>
+                              AQI: {environmentalData.data.air_quality?.aqi}
+                            </Badge>
+                            {environmentalData.data.air_quality?.pm2_5 && (
+                              <Text fontSize="sm" color="gray.600">
+                                PM2.5: {environmentalData.data.air_quality.pm2_5} µg/m³
+                              </Text>
+                            )}
+                            {environmentalData.data.air_quality?.pm10 && (
+                              <Text fontSize="sm" color="gray.600">
+                                PM10: {environmentalData.data.air_quality.pm10} µg/m³
+                              </Text>
+                            )}
+                          </Stack>
+                        )}
+                      </Box>
+
+                      <Box p={4} bg={getUVColor(environmentalData.data.uv?.uv_index || 0)} borderRadius="md">
+                        <Text fontWeight="medium">UV Index</Text>
+                        {environmentalData.data.uv?.error ? (
+                          <Badge colorScheme="red">{environmentalData.data.uv.error}</Badge>
+                        ) : (
+                          <Stack spacing={1}>
+                            <Badge colorScheme={getUVColor(environmentalData.data.uv?.uv_index || 0).replace('.50', '')}>
+                              {environmentalData.data.uv?.uv_index}
+                            </Badge>
+                            {environmentalData.data.uv?.max_uv && (
+                              <Text fontSize="sm" color="gray.600">
+                                Max: {environmentalData.data.uv?.max_uv} at {formatTime(environmentalData.data.uv?.max_uv_time || '')}
+                              </Text>
+                            )}
+                            {environmentalData.data.weather?.sunrise && (
+                              <Text fontSize="sm" color="gray.600">
+                                Sunrise: {formatTime(new Date(environmentalData.data.weather.sunrise * 1000).toISOString())}
+                              </Text>
+                            )}
+                            {environmentalData.data.weather?.sunset && (
+                              <Text fontSize="sm" color="gray.600">
+                                Sunset: {formatTime(new Date(environmentalData.data.weather.sunset * 1000).toISOString())}
+                              </Text>
+                            )}
+                          </Stack>
+                        )}
+                      </Box>
+
+                      <Box p={4} bg="gray.50" borderRadius="md">
+                        <Text fontWeight="medium">Conditions</Text>
+                        {environmentalData.data.humidity?.error ? (
+                          <Badge colorScheme="red">{environmentalData.data.humidity.error}</Badge>
+                        ) : (
+                          <Stack spacing={1}>
+                            <Badge colorScheme="blue">Humidity: {environmentalData.data.humidity?.humidity}%</Badge>
+                            {environmentalData.data.weather?.pressure && (
+                              <Text fontSize="sm" color="gray.600">
+                                Pressure: {environmentalData.data.weather.pressure} hPa
+                              </Text>
+                            )}
+                          </Stack>
+                        )}
+                      </Box>
+                    </Grid>
 
                     <Box p={4} bg="gray.50" borderRadius="md">
-                      <Text fontWeight="medium">Conditions</Text>
-                      {environmentalData.data.humidity?.error ? (
-                        <Badge colorScheme="red">{environmentalData.data.humidity.error}</Badge>
+                      <Text fontWeight="medium" mb={2}>Pollen</Text>
+                      {environmentalData.data.pollen?.error ? (
+                        <Badge colorScheme="red">{environmentalData.data.pollen.error}</Badge>
                       ) : (
-                        <Stack spacing={1}>
-                          <Badge colorScheme="blue">{environmentalData.data.humidity?.humidity}%</Badge>
-                          {environmentalData.data.weather?.pressure && (
-                            <Text fontSize="sm">
-                              Pressure: {environmentalData.data.weather.pressure} hPa
-                            </Text>
-                          )}
+                        <Stack spacing={2}>
+                          <Grid templateColumns="repeat(2, 1fr)" gap={2}>
+                            <Box>
+                              <Text fontSize="sm">Alder: {environmentalData.data.pollen?.alder}</Text>
+                              <Text fontSize="sm">Birch: {environmentalData.data.pollen?.birch}</Text>
+                              <Text fontSize="sm">Grass: {environmentalData.data.pollen?.grass}</Text>
+                            </Box>
+                            <Box>
+                              <Text fontSize="sm">Mugwort: {environmentalData.data.pollen?.mugwort}</Text>
+                              <Text fontSize="sm">Olive: {environmentalData.data.pollen?.olive}</Text>
+                              <Text fontSize="sm">Ragweed: {environmentalData.data.pollen?.ragweed}</Text>
+                            </Box>
+                          </Grid>
                         </Stack>
                       )}
                     </Box>
-                  </Grid>
 
-                  <Box p={4} bg="gray.50" borderRadius="md">
-                    <Text fontWeight="medium" mb={2}>Pollen</Text>
-                    {environmentalData.data.pollen?.error ? (
-                      <Badge colorScheme="red">{environmentalData.data.pollen.error}</Badge>
-                    ) : (
-                      <Stack spacing={2}>
-                        <Grid templateColumns="repeat(2, 1fr)" gap={2}>
-                          <Box>
-                            <Text fontSize="sm">Alder: {environmentalData.data.pollen?.alder}</Text>
-                            <Text fontSize="sm">Birch: {environmentalData.data.pollen?.birch}</Text>
-                            <Text fontSize="sm">Grass: {environmentalData.data.pollen?.grass}</Text>
-                          </Box>
-                          <Box>
-                            <Text fontSize="sm">Mugwort: {environmentalData.data.pollen?.mugwort}</Text>
-                            <Text fontSize="sm">Olive: {environmentalData.data.pollen?.olive}</Text>
-                            <Text fontSize="sm">Ragweed: {environmentalData.data.pollen?.ragweed}</Text>
-                          </Box>
-                        </Grid>
-                      </Stack>
+                    {environmentalData.news?.articles && environmentalData.news.articles.length > 0 && (
+                      <Box>
+                        <Heading size="sm" mb={4}>Local Health News</Heading>
+                        <Stack spacing={4}>
+                          {environmentalData.news.articles.map((article, index) => (
+                            <Box key={index} p={4} bg="gray.50" borderRadius="md">
+                              <Text fontWeight="medium">{article.title}</Text>
+                              <Text fontSize="sm" mt={2}>{article.description}</Text>
+                              <Link
+                                href={article.url}
+                                isExternal
+                                color="blue.500"
+                                fontSize="sm"
+                                mt={2}
+                                display="inline-flex"
+                                alignItems="center"
+                              >
+                                Read more <Icon as={FaExternalLinkAlt} ml={1} />
+                              </Link>
+                            </Box>
+                          ))}
+                        </Stack>
+                      </Box>
                     )}
-                  </Box>
 
-                  {environmentalData.news?.articles && environmentalData.news.articles.length > 0 && (
-                    <Box>
-                      <Heading size="sm" mb={4}>Local Health News</Heading>
-                      <Stack spacing={4}>
-                        {environmentalData.news.articles.map((article, index) => (
-                          <Box key={index} p={4} bg="gray.50" borderRadius="md">
-                            <Text fontWeight="medium">{article.title}</Text>
-                            <Text fontSize="sm" mt={2}>{article.description}</Text>
-                            <Link
-                              href={article.url}
-                              isExternal
-                              color="blue.500"
-                              fontSize="sm"
-                              mt={2}
-                              display="inline-flex"
-                              alignItems="center"
-                            >
-                              Read more <Icon as={FaExternalLinkAlt} ml={1} />
-                            </Link>
-                          </Box>
-                        ))}
-                      </Stack>
+                    <Box fontSize="xs" color="gray.500" textAlign="center">
+                      Last updated: {formatTimestamp(environmentalData.last_updated)}
                     </Box>
-                  )}
-
-                  <Box fontSize="xs" color="gray.500" textAlign="center">
-                    Last updated: {formatTimestamp(environmentalData.last_updated)}
                   </Box>
                 </Stack>
               )}

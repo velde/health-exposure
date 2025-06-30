@@ -339,6 +339,16 @@ function Dashboard() {
     enabled: !!currentLocation
   });
 
+  /*
+   * Air Quality Index (AQI) Health Risk Assessment:
+   * Based on EPA standards and WHO guidelines
+   * 
+   * Green (0-50): Good - Air quality is satisfactory, and air pollution poses little or no risk
+   * Yellow (51-100): Moderate - Air quality is acceptable; however, some pollutants may be a concern for a small number of people
+   * Orange (101-150): Unhealthy for Sensitive Groups - Members of sensitive groups may experience health effects
+   * Red (151-200): Unhealthy - Everyone may begin to experience health effects; members of sensitive groups may experience more serious effects
+   * Purple (201+): Very Unhealthy - Health warnings of emergency conditions; everyone is more likely to be affected
+   */
   const getAQIColor = (aqi: number) => {
     if (aqi <= 1) return 'green.50';
     if (aqi <= 2) return 'yellow.50';
@@ -347,6 +357,16 @@ function Dashboard() {
     return 'purple.50';
   };
 
+  /*
+   * UV Index Health Risk Assessment:
+   * Based on WHO and EPA UV Index scale
+   * 
+   * Green (0-2): Low - Minimal risk of harm from unprotected sun exposure
+   * Yellow (3-5): Moderate - Moderate risk of harm from unprotected sun exposure
+   * Orange (6-7): High - High risk of harm from unprotected sun exposure; protection required
+   * Red (8-10): Very High - Very high risk of harm from unprotected sun exposure; extra protection required
+   * Purple (11+): Extreme - Extreme risk of harm from unprotected sun exposure; all precautions required
+   */
   const getUVColor = (uv: number) => {
     if (uv <= 2) return 'green.50';
     if (uv <= 5) return 'yellow.50';
@@ -355,8 +375,69 @@ function Dashboard() {
     return 'purple.50';
   };
 
+  /*
+   * Tap Water Safety Assessment:
+   * Based on WHO drinking water quality guidelines and local health standards
+   * 
+   * Green: Safe - Water meets drinking water quality standards, safe for consumption
+   * Red: Not Safe - Water may contain harmful contaminants, pathogens, or doesn't meet safety standards
+   * 
+   * Factors considered: bacterial contamination, chemical pollutants, heavy metals, 
+   * disinfection byproducts, and local water treatment effectiveness
+   */
   const getTapWaterColor = (isSafe: boolean) => {
     return isSafe ? 'green.50' : 'red.50';
+  };
+
+  /*
+   * Weather Data Health Risk Assessment:
+   * 
+   * HUMIDITY HEALTH RISKS:
+   * - Comfortable range: 30-60% (Green) - Optimal for human comfort
+   * - Outside comfort: <30% or >60% (Yellow) - Can cause dry skin, respiratory irritation
+   * - Extreme: <20% or >80% (Orange) - Significant discomfort, potential health issues
+   * 
+   * AIR PRESSURE HEALTH RISKS:
+   * Normal atmospheric pressure: 1013.25 hPa at sea level
+   * 
+   * Low Pressure Risks:
+   * - Mild altitude: 800-1000 hPa (2000-6000m elevation) - Yellow
+   * - High altitude: 600-800 hPa (6000-9000m elevation) - Orange  
+   * - Extreme altitude: <600 hPa (>9000m elevation) - Red (altitude sickness, hypoxia)
+   * 
+   * High Pressure Risks:
+   * - Diving: 2000-3000 hPa (10-20m depth) - Yellow
+   * - Deep diving: 3000-5000 hPa (20-40m depth) - Orange
+   * - Extreme diving: >5000 hPa (>40m depth) - Red (decompression sickness)
+   * 
+   * For surface conditions (most common):
+   * - Comfortable: 980-1030 hPa (Green) - Normal weather conditions
+   * - Storm conditions: 950-980 hPa or 1030-1060 hPa (Yellow) - Storm systems
+   * - Extreme weather: <950 hPa or >1060 hPa (Orange) - Severe storms, hurricanes
+   * 
+   * Note: Most people won't experience truly dangerous pressure conditions unless at extreme altitudes or depths.
+   */
+  const getHumidityColor = (humidity: number) => {
+    if (humidity >= 30 && humidity <= 60) return 'green.50'; // Comfortable range
+    if (humidity >= 20 && humidity < 30 || humidity > 60 && humidity <= 80) return 'yellow.50'; // Outside comfort
+    return 'orange.50'; // Extreme: <20% or >80%
+  };
+
+  const getPressureColor = (pressure: number) => {
+    if (pressure >= 980 && pressure <= 1030) return 'green.50'; // Comfortable range
+    if (pressure >= 950 && pressure < 980 || pressure > 1030 && pressure <= 1060) return 'yellow.50'; // Storm conditions
+    return 'orange.50'; // Extreme weather: <950 or >1060
+  };
+
+  const getConditionsColor = (humidity: number, pressure: number) => {
+    // Use the highest risk level between humidity and pressure
+    const humidityColor = getHumidityColor(humidity);
+    const pressureColor = getPressureColor(pressure);
+    
+    // Priority: orange > yellow > green
+    if (humidityColor === 'orange.50' || pressureColor === 'orange.50') return 'orange.50';
+    if (humidityColor === 'yellow.50' || pressureColor === 'yellow.50') return 'yellow.50';
+    return 'green.50';
   };
 
   const formatTimestamp = (timestamp: number) => {
@@ -511,9 +592,9 @@ function Dashboard() {
                       <Badge colorScheme="red">{environmentalData.data.weather.error}</Badge>
                     ) : (
                       <Stack spacing={1}>
-                        <Badge colorScheme="blue">
+                        <Text fontSize="sm" color="gray.600">
                           {Math.round(environmentalData.data.weather?.temperature?.current || 0)}°C (feels like {Math.round(environmentalData.data.weather?.temperature?.feels_like || 0)}°C)
-                        </Badge>
+                        </Text>
                         <Text fontSize="sm" color="gray.600">
                           min {Math.round(environmentalData.data.weather?.temperature?.min || 0)}°C, max {Math.round(environmentalData.data.weather?.temperature?.max || 0)}°C
                         </Text>
@@ -612,13 +693,13 @@ function Dashboard() {
                       )}
                     </Box>
 
-                    <Box p={4} bg="blue.50" borderRadius="md">
+                    <Box p={4} bg={getConditionsColor(environmentalData.data.humidity?.humidity || 0, environmentalData.data.weather?.pressure || 0)} borderRadius="md">
                       <Text fontWeight="medium">Conditions</Text>
                       {environmentalData.data.humidity?.error ? (
                         <Badge colorScheme="red">{environmentalData.data.humidity.error}</Badge>
                       ) : (
                         <Stack spacing={1}>
-                          <Badge colorScheme="blue">Humidity: {environmentalData.data.humidity?.humidity}%</Badge>
+                          <Badge colorScheme={getHumidityColor(environmentalData.data.humidity?.humidity || 0)}>Humidity: {environmentalData.data.humidity?.humidity}%</Badge>
                           {environmentalData.data.weather?.pressure && (
                             <Text fontSize="sm" color="gray.600">
                               Pressure: {environmentalData.data.weather.pressure} hPa

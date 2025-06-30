@@ -169,7 +169,7 @@ Example usage with API key:
 ```bash
 curl -H "x-api-key: YOUR_API_KEY" \
      -H "x-user-tier: premium" \
-     "https://api.health-exposure.app/environmental?lat=61.4978&lon=23.7610"
+     "https://api.healthexposure.app/environmental?lat=61.4978&lon=23.7610"
 ```
 
 ---

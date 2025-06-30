@@ -15,6 +15,7 @@ import {
   Link,
   Divider,
   useToast,
+  Tooltip,
 } from '@chakra-ui/react';
 import { FaMapMarkerAlt, FaExternalLinkAlt, FaSync } from 'react-icons/fa';
 import { useQuery } from '@tanstack/react-query';
@@ -341,13 +342,13 @@ function Dashboard() {
 
   /*
    * Air Quality Index (AQI) Health Risk Assessment:
-   * Based on EPA standards and WHO guidelines
+   * Based on OpenWeather's Air Pollution API scale
    * 
-   * Green (0-50): Good - Air quality is satisfactory, and air pollution poses little or no risk
-   * Yellow (51-100): Moderate - Air quality is acceptable; however, some pollutants may be a concern for a small number of people
-   * Orange (101-150): Unhealthy for Sensitive Groups - Members of sensitive groups may experience health effects
-   * Red (151-200): Unhealthy - Everyone may begin to experience health effects; members of sensitive groups may experience more serious effects
-   * Purple (201+): Very Unhealthy - Health warnings of emergency conditions; everyone is more likely to be affected
+   * Green (1): Good - Air quality is satisfactory, and air pollution poses little or no risk
+   * Yellow (2): Fair - Air quality is acceptable; however, some pollutants may be a concern for a small number of people
+   * Orange (3): Moderate - Members of sensitive groups may experience health effects
+   * Red (4): Poor - Everyone may begin to experience health effects; members of sensitive groups may experience more serious effects
+   * Purple (5): Very Poor - Health warnings of emergency conditions; everyone is more likely to be affected
    */
   const getAQIColor = (aqi: number) => {
     if (aqi <= 1) return 'green.50';
@@ -509,6 +510,167 @@ function Dashboard() {
     
     // Fallback to North for edge cases
     return 'N';
+  };
+
+  // Health risk explanation functions
+  const getAirQualityExplanation = () => {
+    return `Air Quality Index (AQI) Health Risk Assessment:
+    
+Green (1): Good - Air quality is satisfactory, and air pollution poses little or no risk
+
+Yellow (2): Fair - Air quality is acceptable; however, some pollutants may be a concern for a small number of people
+
+Orange (3): Moderate - Members of sensitive groups may experience health effects
+
+Red (4): Poor - Everyone may begin to experience health effects; members of sensitive groups may experience more serious effects
+
+Purple (5): Very Poor - Health warnings of emergency conditions; everyone is more likely to be affected
+
+Based on OpenWeather's Air Pollution API scale`;
+  };
+
+  const getUVExplanation = () => {
+    return `UV Index Health Risk Assessment:
+    
+Green (0-2): Low - Minimal risk of harm from unprotected sun exposure
+
+Yellow (3-5): Moderate - Moderate risk of harm from unprotected sun exposure
+
+Orange (6-7): High - High risk of harm from unprotected sun exposure; protection required
+
+Red (8-10): Very High - Very high risk of harm from unprotected sun exposure; extra protection required
+
+Purple (11+): Extreme - Extreme risk of harm from unprotected sun exposure; all precautions required
+
+Based on WHO and EPA UV Index scale`;
+  };
+
+  const getConditionsExplanation = () => {
+    return `Environmental Conditions Health Risk Assessment:
+
+HUMIDITY HEALTH RISKS:
+• Comfortable range: 30-60% (Green) - Optimal for human comfort
+• Outside comfort: <30% or >60% (Yellow) - Can cause dry skin, respiratory irritation  
+• Extreme: <20% or >80% (Orange) - Significant discomfort, potential health issues
+
+AIR PRESSURE HEALTH RISKS:
+Normal atmospheric pressure: 1013.25 hPa at sea level
+
+• Comfortable: 980-1030 hPa (Green) - Normal weather conditions
+• Storm conditions: 950-980 hPa or 1030-1060 hPa (Yellow) - Storm systems
+• Extreme weather: <950 hPa or >1060 hPa (Orange) - Severe storms, hurricanes
+
+Most people won't experience truly dangerous pressure conditions unless at extreme altitudes or depths.`;
+  };
+
+  /*
+   * Pollen Count Health Risk Assessment:
+   * Based on evidence-based analysis of global pollen data from Open-Meteo API
+   * 
+   * Risk levels are determined by pollen type and concentration in grains/m³:
+   * 
+   * BIRCH POLLEN (most significant):
+   * - Low: 0-650 grains/m³
+   * - Low-Medium: 650-975 grains/m³
+   * - Medium: 975-1,300 grains/m³
+   * - Medium-High: 1,300-1,950 grains/m³
+   * - High: 1,950+ grains/m³
+   * 
+   * GRASS POLLEN:
+   * - Low: 0-26 grains/m³
+   * - Low-Medium: 26-40 grains/m³
+   * - Medium: 40-53 grains/m³
+   * - Medium-High: 53-79 grains/m³
+   * - High: 79+ grains/m³
+   * 
+   * OLIVE POLLEN (Mediterranean):
+   * - Low: 0-44 grains/m³
+   * - Low-Medium: 44-65 grains/m³
+   * - Medium: 65-87 grains/m³
+   * - Medium-High: 87-131 grains/m³
+   * - High: 131+ grains/m³
+   * 
+   * Other types have similar scales based on global analysis.
+   * 
+   * Common symptoms: sneezing, runny nose, itchy eyes, throat irritation
+   * Consider staying indoors during high pollen periods if you're sensitive.
+   */
+  const getPollenColor = (pollenData: Pollen) => {
+    if (!pollenData || pollenData.error) return 'gray.50';
+    
+    // Evidence-based risk thresholds from global analysis (grains/m³)
+    const thresholds = {
+      alder: { low: 39, low_medium: 58, medium: 77, medium_high: 115, high: 115 },
+      birch: { low: 650, low_medium: 975, medium: 1300, medium_high: 1950, high: 1950 },
+      grass: { low: 26, low_medium: 40, medium: 53, medium_high: 79, high: 79 },
+      mugwort: { low: 24, low_medium: 35, medium: 47, medium_high: 71, high: 71 },
+      olive: { low: 44, low_medium: 65, medium: 87, medium_high: 131, high: 131 },
+      ragweed: { low: 14, low_medium: 21, medium: 29, medium_high: 43, high: 43 }
+    };
+    
+    // Assess risk for each pollen type
+    const assessRisk = (value: number, type: keyof typeof thresholds) => {
+      if (!value || value < 0) return 'low';
+      const t = thresholds[type];
+      if (value <= t.low) return 'low';
+      if (value <= t.low_medium) return 'low_medium';
+      if (value <= t.medium) return 'medium';
+      if (value <= t.medium_high) return 'medium_high';
+      return 'high';
+    };
+    
+    // Get the highest risk level among all pollen types
+    const risks = [
+      assessRisk(pollenData.alder, 'alder'),
+      assessRisk(pollenData.birch, 'birch'),
+      assessRisk(pollenData.grass, 'grass'),
+      assessRisk(pollenData.mugwort, 'mugwort'),
+      assessRisk(pollenData.olive, 'olive'),
+      assessRisk(pollenData.ragweed, 'ragweed')
+    ];
+    
+    // Priority: high > medium_high > medium > low_medium > low
+    if (risks.includes('high')) return 'red.50';
+    if (risks.includes('medium_high')) return 'orange.50';
+    if (risks.includes('medium')) return 'yellow.50';
+    if (risks.includes('low_medium')) return 'blue.50';
+    return 'green.50';
+  };
+
+  const getPollenExplanation = () => {
+    return `Pollen Count Health Risk Assessment:
+
+Based on evidence-based analysis of global pollen data from Open-Meteo API
+
+Risk levels are determined by pollen type and concentration in grains/m³:
+
+BIRCH POLLEN (most significant):
+• Low: 0-650 grains/m³
+• Low-Medium: 650-975 grains/m³
+• Medium: 975-1,300 grains/m³
+• Medium-High: 1,300-1,950 grains/m³
+• High: 1,950+ grains/m³
+
+GRASS POLLEN:
+• Low: 0-26 grains/m³
+• Low-Medium: 26-40 grains/m³
+• Medium: 40-53 grains/m³
+• Medium-High: 53-79 grains/m³
+• High: 79+ grains/m³
+
+OLIVE POLLEN (Mediterranean):
+• Low: 0-44 grains/m³
+• Low-Medium: 44-65 grains/m³
+• Medium: 65-87 grains/m³
+• Medium-High: 87-131 grains/m³
+• High: 131+ grains/m³
+
+Other types have similar scales based on global analysis.
+
+Common symptoms: sneezing, runny nose, itchy eyes, throat irritation
+Consider staying indoors during high pollen periods if you're sensitive.
+
+Data source: Open-Meteo Air Quality API`;
   };
 
   return (
@@ -706,99 +868,147 @@ function Dashboard() {
 
                 {environmentalData && (
                   <Stack spacing={3}>
-                    <Box p={3} bg={getAQIColor(environmentalData.data.air_quality?.aqi || 0)} borderRadius="md">
-                      <Text fontWeight="medium">Air Quality</Text>
-                      {environmentalData.data.air_quality?.error ? (
-                        <Badge colorScheme="red">{environmentalData.data.air_quality.error}</Badge>
-                      ) : (
-                        <Stack spacing={1}>
-                          <Badge colorScheme={getAQIColor(environmentalData.data.air_quality?.aqi || 0).replace('.50', '')}>
-                            AQI: {environmentalData.data.air_quality?.aqi}
-                          </Badge>
-                          {environmentalData.data.air_quality?.pm2_5 && (
-                            <Text fontSize="sm" color="gray.600">
-                              PM2.5: {environmentalData.data.air_quality.pm2_5} µg/m³
-                            </Text>
-                          )}
-                          {environmentalData.data.air_quality?.pm10 && (
-                            <Text fontSize="sm" color="gray.600">
-                              PM10: {environmentalData.data.air_quality.pm10} µg/m³
-                            </Text>
-                          )}
-                        </Stack>
-                      )}
-                    </Box>
+                    <Tooltip 
+                      label={getAirQualityExplanation()} 
+                      placement="top" 
+                      hasArrow 
+                      bg="gray.800" 
+                      color="white" 
+                      p={4} 
+                      borderRadius="md"
+                      maxW="300px"
+                      whiteSpace="pre-line"
+                    >
+                      <Box p={3} bg={getAQIColor(environmentalData.data.air_quality?.aqi || 0)} borderRadius="md" cursor="pointer">
+                        <Text fontWeight="medium">Air Quality</Text>
+                        {environmentalData.data.air_quality?.error ? (
+                          <Badge colorScheme="red">{environmentalData.data.air_quality.error}</Badge>
+                        ) : (
+                          <Stack spacing={1}>
+                            <Badge colorScheme={getAQIColor(environmentalData.data.air_quality?.aqi || 0).replace('.50', '')}>
+                              AQI: {environmentalData.data.air_quality?.aqi}
+                            </Badge>
+                            {environmentalData.data.air_quality?.pm2_5 && (
+                              <Text fontSize="sm" color="gray.600">
+                                PM2.5: {environmentalData.data.air_quality.pm2_5} µg/m³
+                              </Text>
+                            )}
+                            {environmentalData.data.air_quality?.pm10 && (
+                              <Text fontSize="sm" color="gray.600">
+                                PM10: {environmentalData.data.air_quality.pm10} µg/m³
+                              </Text>
+                            )}
+                          </Stack>
+                        )}
+                      </Box>
+                    </Tooltip>
 
-                    <Box p={3} bg={getUVColor(environmentalData.data.uv?.uv_index || 0)} borderRadius="md">
-                      <Text fontWeight="medium">UV Index</Text>
-                      {environmentalData.data.uv?.error ? (
-                        <Badge colorScheme="red">{environmentalData.data.uv.error}</Badge>
-                      ) : (
-                        <Stack spacing={1}>
-                          <Badge colorScheme={getUVColor(environmentalData.data.uv?.uv_index || 0).replace('.50', '')}>
-                            {environmentalData.data.uv?.uv_index}
-                          </Badge>
-                          {environmentalData.data.uv?.max_uv && (
-                            <Text fontSize="sm" color="gray.600">
-                              Max: {environmentalData.data.uv?.max_uv} at {formatTime(environmentalData.data.uv?.max_uv_time || '')}
-                            </Text>
-                          )}
-                          {environmentalData.data.weather?.sunrise && (
-                            <Text fontSize="sm" color="gray.600">
-                              Sunrise: {formatTime(new Date(environmentalData.data.weather.sunrise * 1000).toISOString())}
-                            </Text>
-                          )}
-                          {environmentalData.data.weather?.sunset && (
-                            <Text fontSize="sm" color="gray.600">
-                              Sunset: {formatTime(new Date(environmentalData.data.weather.sunset * 1000).toISOString())}
-                            </Text>
-                          )}
-                        </Stack>
-                      )}
-                    </Box>
+                    <Tooltip 
+                      label={getUVExplanation()} 
+                      placement="top" 
+                      hasArrow 
+                      bg="gray.800" 
+                      color="white" 
+                      p={4} 
+                      borderRadius="md"
+                      maxW="300px"
+                      whiteSpace="pre-line"
+                    >
+                      <Box p={3} bg={getUVColor(environmentalData.data.uv?.uv_index || 0)} borderRadius="md" cursor="pointer">
+                        <Text fontWeight="medium">UV Index</Text>
+                        {environmentalData.data.uv?.error ? (
+                          <Badge colorScheme="red">{environmentalData.data.uv.error}</Badge>
+                        ) : (
+                          <Stack spacing={1}>
+                            <Badge colorScheme={getUVColor(environmentalData.data.uv?.uv_index || 0).replace('.50', '')}>
+                              {environmentalData.data.uv?.uv_index}
+                            </Badge>
+                            {environmentalData.data.uv?.max_uv && (
+                              <Text fontSize="sm" color="gray.600">
+                                Max: {environmentalData.data.uv?.max_uv} at {formatTime(environmentalData.data.uv?.max_uv_time || '')}
+                              </Text>
+                            )}
+                            {environmentalData.data.weather?.sunrise && (
+                              <Text fontSize="sm" color="gray.600">
+                                Sunrise: {formatTime(new Date(environmentalData.data.weather.sunrise * 1000).toISOString())}
+                              </Text>
+                            )}
+                            {environmentalData.data.weather?.sunset && (
+                              <Text fontSize="sm" color="gray.600">
+                                Sunset: {formatTime(new Date(environmentalData.data.weather.sunset * 1000).toISOString())}
+                              </Text>
+                            )}
+                          </Stack>
+                        )}
+                      </Box>
+                    </Tooltip>
 
-                    <Box p={3} bg={getConditionsColor(environmentalData.data.humidity?.humidity || 0, environmentalData.data.weather?.pressure || 0)} borderRadius="md">
-                      <Text fontWeight="medium">Conditions</Text>
-                      {environmentalData.data.humidity?.error ? (
-                        <Badge colorScheme="red">{environmentalData.data.humidity.error}</Badge>
-                      ) : (
-                        <Stack spacing={1}>
-                          <Badge colorScheme={getConditionsColor(environmentalData.data.humidity?.humidity || 0, environmentalData.data.weather?.pressure || 0).replace('.50', '')}>
-                            {getConditionsStatus(environmentalData.data.humidity?.humidity || 0, environmentalData.data.weather?.pressure || 0)}
-                          </Badge>
-                          <Text fontSize="sm" color="gray.600">
-                            Humidity: {environmentalData.data.humidity?.humidity}%
-                          </Text>
-                          {environmentalData.data.weather?.pressure && (
+                    <Tooltip 
+                      label={getConditionsExplanation()} 
+                      placement="top" 
+                      hasArrow 
+                      bg="gray.800" 
+                      color="white" 
+                      p={4} 
+                      borderRadius="md"
+                      maxW="300px"
+                      whiteSpace="pre-line"
+                    >
+                      <Box p={3} bg={getConditionsColor(environmentalData.data.humidity?.humidity || 0, environmentalData.data.weather?.pressure || 0)} borderRadius="md" cursor="pointer">
+                        <Text fontWeight="medium">Conditions</Text>
+                        {environmentalData.data.humidity?.error ? (
+                          <Badge colorScheme="red">{environmentalData.data.humidity.error}</Badge>
+                        ) : (
+                          <Stack spacing={1}>
+                            <Badge colorScheme={getConditionsColor(environmentalData.data.humidity?.humidity || 0, environmentalData.data.weather?.pressure || 0).replace('.50', '')}>
+                              {getConditionsStatus(environmentalData.data.humidity?.humidity || 0, environmentalData.data.weather?.pressure || 0)}
+                            </Badge>
                             <Text fontSize="sm" color="gray.600">
-                              Pressure: {environmentalData.data.weather.pressure} hPa
+                              Humidity: {environmentalData.data.humidity?.humidity}%
                             </Text>
-                          )}
-                        </Stack>
-                      )}
-                    </Box>
+                            {environmentalData.data.weather?.pressure && (
+                              <Text fontSize="sm" color="gray.600">
+                                Pressure: {environmentalData.data.weather.pressure} hPa
+                              </Text>
+                            )}
+                          </Stack>
+                        )}
+                      </Box>
+                    </Tooltip>
 
-                    <Box p={3} bg="gray.50" borderRadius="md">
-                      <Text fontWeight="medium" mb={2}>Pollen</Text>
-                      {environmentalData.data.pollen?.error ? (
-                        <Badge colorScheme="red">{environmentalData.data.pollen.error}</Badge>
-                      ) : (
-                        <Stack spacing={2}>
-                          <Grid templateColumns="repeat(2, 1fr)" gap={2}>
-                            <Box>
-                              <Text fontSize="sm">Alder: {environmentalData.data.pollen?.alder}</Text>
-                              <Text fontSize="sm">Birch: {environmentalData.data.pollen?.birch}</Text>
-                              <Text fontSize="sm">Grass: {environmentalData.data.pollen?.grass}</Text>
-                            </Box>
-                            <Box>
-                              <Text fontSize="sm">Mugwort: {environmentalData.data.pollen?.mugwort}</Text>
-                              <Text fontSize="sm">Olive: {environmentalData.data.pollen?.olive}</Text>
-                              <Text fontSize="sm">Ragweed: {environmentalData.data.pollen?.ragweed}</Text>
-                            </Box>
-                          </Grid>
-                        </Stack>
-                      )}
-                    </Box>
+                    <Tooltip 
+                      label={getPollenExplanation()} 
+                      placement="top" 
+                      hasArrow 
+                      bg="gray.800" 
+                      color="white" 
+                      p={4} 
+                      borderRadius="md"
+                      maxW="300px"
+                      whiteSpace="pre-line"
+                    >
+                      <Box p={3} bg={getPollenColor(environmentalData.data.pollen)} borderRadius="md" cursor="pointer">
+                        <Text fontWeight="medium" mb={2}>Pollen</Text>
+                        {environmentalData.data.pollen?.error ? (
+                          <Badge colorScheme="red">{environmentalData.data.pollen.error}</Badge>
+                        ) : (
+                          <Stack spacing={2}>
+                            <Grid templateColumns="repeat(2, 1fr)" gap={2}>
+                              <Box>
+                                <Text fontSize="sm">Alder: {environmentalData.data.pollen?.alder}</Text>
+                                <Text fontSize="sm">Birch: {environmentalData.data.pollen?.birch}</Text>
+                                <Text fontSize="sm">Grass: {environmentalData.data.pollen?.grass}</Text>
+                              </Box>
+                              <Box>
+                                <Text fontSize="sm">Mugwort: {environmentalData.data.pollen?.mugwort}</Text>
+                                <Text fontSize="sm">Olive: {environmentalData.data.pollen?.olive}</Text>
+                                <Text fontSize="sm">Ragweed: {environmentalData.data.pollen?.ragweed}</Text>
+                              </Box>
+                            </Grid>
+                          </Stack>
+                        )}
+                      </Box>
+                    </Tooltip>
 
                     <Box fontSize="xs" color="gray.500" textAlign="center">
                       Last updated: {formatTimestamp(environmentalData.last_updated)}

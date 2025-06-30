@@ -504,26 +504,14 @@ function Dashboard() {
                       {environmentalData.data.uv?.error ? (
                         <Badge colorScheme="red">{environmentalData.data.uv.error}</Badge>
                       ) : (
-                        <Stack spacing={2}>
-                          <Stack spacing={1}>
-                            <Text fontSize="sm" color="gray.600">Current</Text>
-                            <Badge colorScheme={getUVColor(environmentalData.data.uv?.uv_index || 0).replace('.50', '')} fontSize="md">
-                              {environmentalData.data.uv?.uv_index}
-                            </Badge>
-                          </Stack>
-                          
-                          {environmentalData.data.uv?.max_uv && (
-                            <Stack spacing={1}>
-                              <Text fontSize="sm" color="gray.600">Max Today</Text>
-                              <Badge colorScheme={getUVColor(environmentalData.data.uv?.max_uv || 0).replace('.50', '')} variant="outline">
-                                {environmentalData.data.uv?.max_uv}
-                              </Badge>
-                              {environmentalData.data.uv?.max_uv_time && (
-                                <Text fontSize="xs" color="gray.500">
-                                  at {formatTime(environmentalData.data.uv.max_uv_time)}
-                                </Text>
-                              )}
-                            </Stack>
+                        <Stack spacing={1}>
+                          <Badge colorScheme={getUVColor(environmentalData.data.uv?.uv_index || 0).replace('.50', '')}>
+                            {environmentalData.data.uv?.uv_index}
+                          </Badge>
+                          {environmentalData.data.uv?.max_uv && environmentalData.data.uv?.max_uv !== environmentalData.data.uv?.uv_index && (
+                            <Text fontSize="sm" color="gray.600">
+                              Max: {environmentalData.data.uv?.max_uv} at {formatTime(environmentalData.data.uv?.max_uv_time || '')}
+                            </Text>
                           )}
                         </Stack>
                       )}
@@ -549,8 +537,8 @@ function Dashboard() {
                         <Badge colorScheme="red">{environmentalData.data.humidity.error}</Badge>
                       ) : (
                         <Stack spacing={1}>
-                          <Text fontSize="lg">{environmentalData.data.humidity?.humidity}%</Text>
-                          <Text fontSize="xs" color="gray.500">
+                          <Badge colorScheme="blue">{environmentalData.data.humidity?.humidity}%</Badge>
+                          <Text fontSize="sm" color="gray.500">
                             Updated: {formatTimestamp(environmentalData.data.humidity?.timestamp || 0)}
                           </Text>
                         </Stack>
